@@ -18,12 +18,13 @@ The application now has its first browser-usable vertical slice:
 - built-in Yahoo Finance daily-data adapter behind the provider abstraction
 - browser form for symbol, SMA windows, dates, capital, costs, slippage, and sizing
 - browser results for metrics, equity-vs-benchmark chart, and trade history
-- in-app About & guide tab explaining inputs, assumptions, and result metrics
+- About tab focused on application purpose, workflow, design choices, scope, and limitations
 - clickable metric cards with buy-and-hold comparisons and clearer chart axes/legend
 - browser strategy builder for optional price-trend, ROC momentum, and volatility filters with configurable entry/exit logic
 - bounded strategy research API with a chronological holdout period and buy-and-hold excess-return reporting
 - browser Research tab for bounded parameter grids, candidate-cap previews, ranked training results, and separate holdout metrics
-- excess-return ranking objective plus a post-search robustness diagnostic that never affects holdout-independent ranking\n- cross-linked Learn / Wiki tab with searchable plain-English concept articles and lightweight visual explainers
+- excess-return ranking objective plus a post-search robustness diagnostic that never affects holdout-independent ranking
+- cross-linked Learn tab with searchable plain-English concept articles and interactive visual explainers
 
 The system remains intentionally small: the browser UI contains no backtesting logic and there is no authentication or separate JavaScript build toolchain yet.
 
