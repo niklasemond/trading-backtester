@@ -298,7 +298,6 @@ function applyInstrumentSelection(){
 }
 $('instrument').addEventListener('change',applyInstrumentSelection);
 $('symbol').addEventListener('input',()=>{if($('instrument').value==='other')renderInstrumentInfo($('symbol').value.trim().toUpperCase())});
-setInstrumentSymbol('SPY');
 const backtestPresets={
   defensive:{
     title:'Defensive example',
@@ -385,6 +384,7 @@ function updateHistoricalPresetLabels(symbol){
   $('historical-good-option').textContent=`${s} · Typical historical example`;
   $('historical-strong-option').textContent=`${s} · Strong historical example`;
 }
+setInstrumentSymbol('SPY');
 
 };
 function setBacktestValue(id,value){if(id==='symbol'){setInstrumentSymbol(value);return}let el=$(id);if(el.type==='checkbox')el.checked=Boolean(value);else el.value=String(value)}
