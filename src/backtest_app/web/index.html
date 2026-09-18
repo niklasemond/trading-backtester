@@ -386,7 +386,6 @@ function updateHistoricalPresetLabels(symbol){
 }
 setInstrumentSymbol('SPY');
 
-};
 function setBacktestValue(id,value){if(id==='symbol'){setInstrumentSymbol(value);return}let el=$(id);if(el.type==='checkbox')el.checked=Boolean(value);else el.value=String(value)}
 function applyBacktestPreset(name){let preset=backtestPresets[name];if(!preset)return;if(preset.historicalTier){let symbol=$('symbol').value.trim().toUpperCase();preset=historicalExamplePreset(symbol,preset.historicalTier)}Object.entries(preset.values).forEach(([id,value])=>setBacktestValue(id,value));$('preset-title').textContent=preset.title;$('preset-description').textContent=preset.description;document.querySelector('.preset-badge').textContent=name.startsWith('historical-')?'Historical calibration · not a forecast':'Starting point · not a recommendation';updateStrategySummary()}
 function ref(id){return{kind:'indicator',id}}
