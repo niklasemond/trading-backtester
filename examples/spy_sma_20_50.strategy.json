@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "name": "SPY 20/50 SMA crossover",
+  "symbols": ["SPY"],
+  "frequency": "1d",
+  "direction": "long_only",
+  "indicators": [
+    {"type": "sma", "id": "fast", "source": "close", "window": 20},
+    {"type": "sma", "id": "slow", "source": "close", "window": 50}
+  ],
+  "entry_conditions": [
+    {
+      "type": "crossover",
+      "left": {"kind": "indicator", "id": "fast"},
+      "operator": "crosses_above",
+      "right": {"kind": "indicator", "id": "slow"}
+    }
+  ],
+  "exit_conditions": [
+    {
+      "type": "crossover",
+      "left": {"kind": "indicator", "id": "fast"},
+      "operator": "crosses_below",
+      "right": {"kind": "indicator", "id": "slow"}
+    }
+  ],
+  "position_sizing": {
+    "type": "all_in",
+    "cash_buffer_fraction": 0.0,
+    "allow_fractional_shares": false
+  },
+  "execution": {
+    "signal_price": "close",
+    "execution_bar": "next_bar",
+    "execution_price": "open"
+  }
+}
