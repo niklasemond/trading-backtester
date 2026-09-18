@@ -270,3 +270,12 @@ def test_every_builtin_instrument_has_three_historical_examples() -> None:
     assert "relative historical example within the tested grid" in html
     assert "lagged buy-and-hold" in html
     assert "beat buy-and-hold" in html
+
+
+def test_custom_ticker_disables_calibrated_historical_examples() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    html = client.get("/").text
+
+    assert "Historical examples are available only for built-in instruments" in html
+    assert "options.forEach(option=>option.disabled=!available)" in html
+    assert "if(!available&&$('backtest-preset').value.startsWith('historical-'))" in html
