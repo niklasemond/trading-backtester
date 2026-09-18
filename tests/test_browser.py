@@ -221,7 +221,7 @@ def test_backtest_instrument_library_and_custom_ticker_fallback() -> None:
     html = client.get("/").text
 
     assert 'id="instrument"' in html
-    assert '<option value="SPY">SPY — S&amp;P 500</option>' in html
+    assert '<option value="SPY">SPY — S&P 500</option>' in html
     assert '<option value="QQQ">QQQ — Nasdaq-100</option>' in html
     assert '<option value="IWM">IWM — Russell 2000</option>' in html
     assert '<option value="TLT">TLT — Long US Treasuries</option>' in html
