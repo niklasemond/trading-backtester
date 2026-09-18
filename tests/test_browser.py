@@ -68,3 +68,31 @@ def test_browser_exposes_excess_return_objective_and_robustness_view() -> None:
     assert "Robustness" in response.text
     assert "Robustness is a post-search diagnostic" in response.text
     assert "worst excess" in response.text
+
+
+def test_browser_exposes_cross_linked_trading_wiki() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    response = client.get("/")
+    assert 'data-view="learn-view"' in response.text
+    assert 'id="learn-view"' in response.text
+    assert 'id="wiki-search"' in response.text
+    assert 'id="wiki-sma"' in response.text
+    assert 'id="wiki-momentum"' in response.text
+    assert 'id="wiki-slippage"' in response.text
+    assert 'id="wiki-train-holdout"' in response.text
+    assert 'id="wiki-robustness"' in response.text
+    assert 'data-wiki-target="wiki-volatility"' in response.text
+    assert 'data-wiki-target="wiki-drawdown"' in response.text
+    assert 'data-wiki-target="wiki-excess"' in response.text
+    assert "Search trading concepts" in response.text
+
+
+def test_browser_wiki_includes_visual_explainers_and_plain_english_app_context() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    response = client.get("/")
+    assert 'aria-label="Price line with faster and slower moving averages"' in response.text
+    assert 'aria-label="Timeline divided into training and holdout periods"' in response.text
+    assert 'aria-label="Equity curve showing peak, trough, and maximum drawdown"' in response.text
+    assert "In the app" in response.text
+    assert "Trading intuition" in response.text
+    assert "1 basis point (bp) = 0.01%" in response.text
