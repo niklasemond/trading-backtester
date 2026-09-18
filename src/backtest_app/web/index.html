@@ -21,12 +21,12 @@
 <section id="backtest-view" class="view" hidden>
   <section class="box"><h2>Strategy setup</h2><form id="backtest-form">
     <div class="preset-panel">
-      <label>Example profile<select id="backtest-preset"><option value="">Custom / current values</option><optgroup label="Strategy styles"><option value="defensive">Defensive</option><option value="neutral">Neutral</option><option value="offensive">Offensive</option></optgroup><optgroup label="Worked historical examples"><option value="historical-weak">Weak historical example</option><option value="historical-good">Good historical example</option><option value="historical-strong">Strong historical example</option></optgroup></select><small>Strategy-style presets keep your dates. Historical examples also load their calibrated SPY period so the labels remain meaningful.</small></label>
+      <label>Example profile<select id="backtest-preset"><option value="">Custom / current values</option><optgroup label="Strategy styles"><option value="defensive">Defensive</option><option value="neutral">Neutral</option><option value="offensive">Offensive</option></optgroup><optgroup label="Worked historical examples"><option id="historical-weak-option" value="historical-weak">SPY · Weak historical example</option><option id="historical-good-option" value="historical-good">SPY · Typical historical example</option><option id="historical-strong-option" value="historical-strong">SPY · Strong historical example</option></optgroup></select><small>Strategy-style presets keep your dates. Historical examples load the selected instrument's calibrated period so the labels remain meaningful.</small></label>
       <div class="preset-copy"><span class="preset-badge">Starting point, not a recommendation</span><strong id="preset-title">Choose an example profile</strong><span id="preset-description">Use a preset to see how slower filters, balanced trend rules, or faster signals change the structure of a backtest. You can edit any field after applying it.</span></div>
     </div>
     <label>Instrument<select id="instrument"><option value="SPY">SPY — S&P 500</option><option value="QQQ">QQQ — Nasdaq-100</option><option value="IWM">IWM — Russell 2000</option><option value="TLT">TLT — Long US Treasuries</option><option value="GLD">GLD — Gold</option><option value="EFA">EFA — Developed ex-US equities</option><option value="EEM">EEM — Emerging markets</option><option value="HYG">HYG — High-yield credit</option><option value="other">Other ticker…</option></select><small>Built-in liquid ETF library, or choose another Yahoo-supported ticker</small></label>
     <label id="custom-symbol-label" class="custom-symbol" hidden>Other ticker<input id="symbol" value="SPY" autocomplete="off"><small>Enter a Yahoo-supported ticker</small></label>
-    <div id="instrument-info" class="instrument-panel" aria-live="polite"><div><span id="instrument-category" class="instrument-category">US equity</span><strong id="instrument-name">SPY — S&P 500</strong><span id="instrument-description">Broad US large-cap equity exposure and the application's original reference instrument.</span></div></div>
+    <div id="instrument-info" class="instrument-panel" aria-live="polite"><div><span id="instrument-category" class="instrument-category">US equity</span><strong id="instrument-name">SPY — S&P 500</strong><span id="instrument-description">Broad US large-cap equity exposure and the application's original reference instrument.</span><div style="margin-top:7px"><a class="concept-link" href="#wiki-instruments" data-wiki-target="wiki-instruments">Learn about asset classes & instruments</a></div></div></div>
     <label>Fast SMA<input id="fast" type="number" value="20" min="1"><small>Short moving-average window</small></label>
     <label>Slow SMA<input id="slow" type="number" value="50" min="2"><small>Long moving-average window</small></label>
     <label>Provider<select id="provider"><option value="yahoo">Yahoo Finance</option></select><small>Historical market-data source</small></label>
@@ -108,6 +108,7 @@
       <a class="wiki-link" href="#wiki-train-holdout" data-wiki-target="wiki-train-holdout">Training &amp; holdout<small>overfitting control</small></a>
       <a class="wiki-link" href="#wiki-excess" data-wiki-target="wiki-excess">Excess return<small>strategy minus benchmark</small></a>
       <a class="wiki-link" href="#wiki-robustness" data-wiki-target="wiki-robustness">Robustness diagnostic<small>consistency across periods</small></a>
+      <a class="wiki-link" href="#wiki-instruments" data-wiki-target="wiki-instruments">Asset classes & instruments<small>SPY, QQQ, IWM, TLT, GLD, EFA, EEM, HYG</small></a>
       <a class="wiki-link" href="#wiki-putting-it-together" data-wiki-target="wiki-putting-it-together">Putting it all together<small>worked simple backtest</small></a>
     </nav></aside>
     <div class="wiki-content">
@@ -193,6 +194,22 @@
       <article id="wiki-robustness" class="wiki-card" data-wiki-keywords="robustness diagnostic mixed positive both negative worst excess train holdout consistency">
         <div class="wiki-kicker">Research diagnostic</div><h3>Robustness diagnostic</h3><p>The robustness score is the weaker of training and holdout <a class="concept-link" href="#wiki-excess" data-wiki-target="wiki-excess">excess return</a>. A positive robustness score therefore requires the strategy to beat buy-and-hold in both periods.</p><div class="wiki-meta"><div><strong>Positive in both</strong><span>Training and holdout excess returns are both above zero.</span></div><div><strong>Mixed</strong><span>One period beats buy-and-hold and the other does not.</span></div></div><p>It is deliberately a diagnostic, not a ranking objective. Re-ranking after seeing the holdout would weaken the purpose of the <a class="concept-link" href="#wiki-train-holdout" data-wiki-target="wiki-train-holdout">holdout period</a>.</p>
       </article>
+      <article id="wiki-instruments" class="wiki-card" data-wiki-keywords="asset classes instruments SPY QQQ IWM TLT GLD EFA EEM HYG equity bonds gold credit international emerging">
+        <div class="wiki-kicker">Markets</div><h3>Asset classes & built-in instruments</h3>
+        <p>Testing one strategy on different markets helps separate a rule that happened to fit one index from a rule whose behavior may be more general. The built-in library uses liquid ETFs so the app can stay within its current daily, single-asset architecture while exposing the strategy to meaningfully different market drivers.</p>
+        <div class="wiki-meta">
+          <div><strong>SPY · S&P 500</strong><span>Broad US large-cap equities. The original reference instrument and a useful baseline for comparing active rules with passive US equity exposure.</span></div>
+          <div><strong>QQQ · Nasdaq-100</strong><span>Large Nasdaq-listed non-financial companies with heavier growth and technology exposure. Useful for testing faster momentum and stronger trend regimes.</span></div>
+          <div><strong>IWM · Russell 2000</strong><span>US small caps. Typically more cyclical and volatile than large-cap indexes, making it a useful stress test for equity trend rules.</span></div>
+          <div><strong>TLT · Long US Treasuries</strong><span>Long-duration US government bonds. Bond prices respond strongly to interest-rate expectations, so TLT tests whether a rule behaves outside equities.</span></div>
+          <div><strong>GLD · Gold</strong><span>Gold exposure. Its drivers differ from corporate earnings and equity indexes, making it useful for testing trend behavior in a real-asset market.</span></div>
+          <div><strong>EFA · Developed ex-US</strong><span>Developed-market equities outside the US and Canada. It adds geographic diversification and different economic regimes.</span></div>
+          <div><strong>EEM · Emerging markets</strong><span>Emerging-market equities. Currency, commodity, political, and macro sensitivity can make the return path very different from US equities.</span></div>
+          <div><strong>HYG · High-yield credit</strong><span>High-yield corporate bonds. Credit sits between classic fixed income and risk assets, often responding to both rates and changes in risk appetite.</span></div>
+        </div>
+        <p class="wiki-note"><strong>Research use:</strong> the purpose of this instrument set is not to imply that one market is preferable. It gives the same strategy different environments to face. A rule that only looks attractive on one instrument should be interpreted differently from one whose behavior remains sensible across several unrelated markets.</p>
+        <p>The worked historical examples in Backtest are calibrated independently for each built-in instrument. <strong>Weak, Typical, and Strong are relative labels within the tested SMA/trend grid and calibration period.</strong> A Strong example can still underperform that instrument's buy-and-hold benchmark, and the preset description says so when that happened.</p>
+      </article>
       <article id="wiki-putting-it-together" class="wiki-card" data-wiki-keywords="putting it all together worked example simple backtest choose inputs interpret results process workflow">
         <div class="wiki-kicker">Worked example</div><h3>Putting it all together: a simple backtest</h3>
         <p>A useful backtest starts with a <strong>plain trading idea</strong>, not with random parameter hunting. Suppose your hypothesis is: <em>“I want to own SPY when short-term trend strength is above the longer-term trend, and step aside when that relationship reverses.”</em> That naturally maps to an <a class="concept-link" href="#wiki-crossover" data-wiki-target="wiki-crossover">SMA crossover</a>.</p>
@@ -265,6 +282,7 @@ function setInstrumentSymbol(symbol){
     $('custom-symbol-label').hidden=false;
   }
   renderInstrumentInfo(normalized);
+  updateHistoricalPresetLabels(normalized);
 }
 function applyInstrumentSelection(){
   let selected=$('instrument').value;
@@ -280,7 +298,6 @@ function applyInstrumentSelection(){
 }
 $('instrument').addEventListener('change',applyInstrumentSelection);
 $('symbol').addEventListener('input',()=>{if($('instrument').value==='other')renderInstrumentInfo($('symbol').value.trim().toUpperCase())});
-setInstrumentSymbol('SPY');
 const backtestPresets={
   defensive:{
     title:'Defensive example',
@@ -297,24 +314,84 @@ const backtestPresets={
     description:'A faster, more fully invested trend setup. Shorter moving averages and a shorter momentum lookback react sooner, while the absence of a volatility gate makes it more willing to stay exposed.',
     values:{symbol:'SPY',fast:10,slow:50,provider:'yahoo',capital:100000,commission:0,slippage:5,buffer:0,fractional:'false','trend-filter':false,'momentum-entry':true,'momentum-window':63,'momentum-threshold':0,'momentum-exit':false,'vol-entry':false,'vol-window':20,'vol-threshold':35,'vol-exit':false,'entry-logic':'all','exit-logic':'all'}
   },
-  'historical-weak':{
-    title:'Weak historical example · SPY 2000–2025',
-    description:'5/50 SMA crossover. In the calibration run it returned about 170% versus about 426% for buy-and-hold: roughly 256 percentage points of underperformance. Useful for seeing why “made money” is not the same as “added value.”',
-    values:{symbol:'SPY',fast:5,slow:50,provider:'yahoo',start:'2000-01-03',end:'2025-12-31',capital:100000,commission:0,slippage:5,buffer:0,fractional:'false','trend-filter':false,'momentum-entry':false,'momentum-window':126,'momentum-threshold':0,'momentum-exit':false,'vol-entry':false,'vol-window':20,'vol-threshold':35,'vol-exit':false,'entry-logic':'all','exit-logic':'all'}
+  'historical-weak':{historicalTier:'weak'},
+  'historical-good':{historicalTier:'typical'},
+  'historical-strong':{historicalTier:'strong'}
+};
+const instrumentHistoricalExamples={
+  SPY:{
+    period:['2000-01-03','2025-12-31'],benchmark:426,
+    weak:{fast:5,slow:50,trend:false,ret:170,excess:-256,drawdown:27},
+    typical:{fast:20,slow:150,trend:true,ret:442,excess:16,drawdown:26},
+    strong:{fast:10,slow:200,trend:true,ret:661,excess:234,drawdown:19}
   },
-  'historical-good':{
-    title:'Good historical example · SPY 2000–2025',
-    description:'20/150 SMA crossover with price-above-slow trend confirmation. In calibration it returned about 442% versus 426% for buy-and-hold, with about 26% maximum drawdown. A modest historical improvement rather than a spectacular one.',
-    values:{symbol:'SPY',fast:20,slow:150,provider:'yahoo',start:'2000-01-03',end:'2025-12-31',capital:100000,commission:0,slippage:5,buffer:0,fractional:'false','trend-filter':true,'momentum-entry':false,'momentum-window':126,'momentum-threshold':0,'momentum-exit':false,'vol-entry':false,'vol-window':20,'vol-threshold':35,'vol-exit':false,'entry-logic':'all','exit-logic':'all'}
+  QQQ:{
+    period:['2008-01-02','2025-12-31'],benchmark:1145,
+    weak:{fast:30,slow:75,trend:true,ret:232,excess:-913,drawdown:35},
+    typical:{fast:20,slow:200,trend:false,ret:698,excess:-447,drawdown:29},
+    strong:{fast:75,slow:300,trend:false,ret:1474,excess:329,drawdown:28}
   },
-  'historical-strong':{
-    title:'Strong historical example · SPY 2000–2025',
-    description:'10/200 SMA crossover with price-above-slow trend confirmation. In calibration it returned about 661% versus 426% for buy-and-hold, with about 19% maximum drawdown and a stronger Sharpe than the benchmark. Selected as an educational historical example, not a forecast.',
-    values:{symbol:'SPY',fast:10,slow:200,provider:'yahoo',start:'2000-01-03',end:'2025-12-31',capital:100000,commission:0,slippage:5,buffer:0,fractional:'false','trend-filter':true,'momentum-entry':false,'momentum-window':126,'momentum-threshold':0,'momentum-exit':false,'vol-entry':false,'vol-window':20,'vol-threshold':35,'vol-exit':false,'entry-logic':'all','exit-logic':'all'}
+  IWM:{
+    period:['2008-01-02','2025-12-31'],benchmark:265,
+    weak:{fast:100,slow:200,trend:true,ret:-3,excess:-268,drawdown:56},
+    typical:{fast:20,slow:300,trend:false,ret:85,excess:-181,drawdown:43},
+    strong:{fast:50,slow:100,trend:true,ret:206,excess:-59,drawdown:39}
+  },
+  TLT:{
+    period:['2008-01-02','2025-12-31'],benchmark:57,
+    weak:{fast:100,slow:250,trend:false,ret:-7,excess:-63,drawdown:31},
+    typical:{fast:5,slow:150,trend:false,ret:51,excess:-5,drawdown:29},
+    strong:{fast:20,slow:100,trend:true,ret:118,excess:61,drawdown:18}
+  },
+  GLD:{
+    period:['2008-01-02','2025-12-31'],benchmark:374,
+    weak:{fast:5,slow:100,trend:true,ret:103,excess:-271,drawdown:38},
+    typical:{fast:75,slow:200,trend:false,ret:237,excess:-137,drawdown:37},
+    strong:{fast:100,slow:150,trend:true,ret:357,excess:-17,drawdown:23}
+  },
+  EFA:{
+    period:['2008-01-02','2025-12-31'],benchmark:66,
+    weak:{fast:20,slow:300,trend:true,ret:13,excess:-53,drawdown:41},
+    typical:{fast:5,slow:75,trend:false,ret:82,excess:16,drawdown:23},
+    strong:{fast:20,slow:100,trend:true,ret:168,excess:102,drawdown:22}
+  },
+  EEM:{
+    period:['2008-01-02','2025-12-31'],benchmark:317,
+    weak:{fast:100,slow:150,trend:false,ret:-13,excess:-330,drawdown:63},
+    typical:{fast:20,slow:300,trend:false,ret:31,excess:-286,drawdown:37},
+    strong:{fast:20,slow:75,trend:true,ret:129,excess:-188,drawdown:34}
+  },
+  HYG:{
+    period:['2008-01-02','2025-12-31'],benchmark:76,
+    weak:{fast:30,slow:75,trend:false,ret:32,excess:-44,drawdown:22},
+    typical:{fast:20,slow:100,trend:true,ret:67,excess:-9,drawdown:11},
+    strong:{fast:10,slow:200,trend:false,ret:119,excess:43,drawdown:6}
   }
 };
+function historicalExamplePreset(symbol,tier){
+  let instrument=instrumentHistoricalExamples[symbol];
+  if(!instrument)throw Error('Historical examples are available only for built-in instruments');
+  let e=instrument[tier],label=tier==='typical'?'Typical':tier[0].toUpperCase()+tier.slice(1);
+  let relation=e.excess>=0?`beat buy-and-hold by about ${e.excess} percentage points`:`lagged buy-and-hold by about ${Math.abs(e.excess)} percentage points`;
+  return{
+    title:`${symbol} · ${label} historical example · ${instrument.period[0].slice(0,4)}–${instrument.period[1].slice(0,4)}`,
+    description:`${e.fast}/${e.slow} SMA${e.trend?' with price-above-slow trend confirmation':''}. In calibration it returned about ${e.ret}% versus ${instrument.benchmark}% for buy-and-hold and ${relation}; maximum drawdown was about ${e.drawdown}%. This is a relative historical example within the tested grid, not a forecast.`,
+    values:{symbol,fast:e.fast,slow:e.slow,provider:'yahoo',start:instrument.period[0],end:instrument.period[1],capital:100000,commission:0,slippage:5,buffer:0,fractional:'false','trend-filter':e.trend,'momentum-entry':false,'momentum-window':126,'momentum-threshold':0,'momentum-exit':false,'vol-entry':false,'vol-window':20,'vol-threshold':35,'vol-exit':false,'entry-logic':'all','exit-logic':'all'}
+  }
+}
+function updateHistoricalPresetLabels(symbol){
+  let available=Boolean(instrumentHistoricalExamples[symbol]),s=available?symbol:'Built-ins only';
+  let options=[$('historical-weak-option'),$('historical-good-option'),$('historical-strong-option')];
+  options.forEach(option=>option.disabled=!available);
+  $('historical-weak-option').textContent=`${s} · Weak historical example`;
+  $('historical-good-option').textContent=`${s} · Typical historical example`;
+  $('historical-strong-option').textContent=`${s} · Strong historical example`;
+  if(!available&&$('backtest-preset').value.startsWith('historical-'))$('backtest-preset').value='';
+}
+setInstrumentSymbol('SPY');
+
 function setBacktestValue(id,value){if(id==='symbol'){setInstrumentSymbol(value);return}let el=$(id);if(el.type==='checkbox')el.checked=Boolean(value);else el.value=String(value)}
-function applyBacktestPreset(name){let preset=backtestPresets[name];if(!preset)return;Object.entries(preset.values).forEach(([id,value])=>setBacktestValue(id,value));$('preset-title').textContent=preset.title;$('preset-description').textContent=preset.description;document.querySelector('.preset-badge').textContent=name.startsWith('historical-')?'Historical calibration · not a forecast':'Starting point · not a recommendation';updateStrategySummary()}
+function applyBacktestPreset(name){let preset=backtestPresets[name];if(!preset)return;if(preset.historicalTier){let symbol=$('symbol').value.trim().toUpperCase();preset=historicalExamplePreset(symbol,preset.historicalTier)}Object.entries(preset.values).forEach(([id,value])=>setBacktestValue(id,value));$('preset-title').textContent=preset.title;$('preset-description').textContent=preset.description;document.querySelector('.preset-badge').textContent=name.startsWith('historical-')?'Historical calibration · not a forecast':'Starting point · not a recommendation';updateStrategySummary()}
 function ref(id){return{kind:'indicator',id}}
 function constant(value){return{kind:'constant',value}}
 function buildStrategy(){let s=$('symbol').value.trim().toUpperCase();if(!s)throw Error('Choose an instrument or enter a ticker');let f=+$('fast').value,l=+$('slow').value;let trend=$('trend-filter').checked,me=$('momentum-entry').checked,mx=$('momentum-exit').checked,ve=$('vol-entry').checked,vx=$('vol-exit').checked;let advanced=trend||me||mx||ve||vx||$('entry-logic').value!=='all'||$('exit-logic').value!=='all';let indicators=[{type:'sma',id:'fast',source:'close',window:f},{type:'sma',id:'slow',source:'close',window:l}];if(me||mx)indicators.push({type:'roc',id:'momentum',source:'close',window:+$('momentum-window').value});if(ve||vx)indicators.push({type:'volatility',id:'volatility',source:'close',window:+$('vol-window').value,annualization_factor:252});let entry=[{type:'crossover',left:ref('fast'),operator:'crosses_above',right:ref('slow')}],exit=[{type:'crossover',left:ref('fast'),operator:'crosses_below',right:ref('slow')}];if(trend)entry.push({type:'comparison',left:{kind:'price',field:'close'},operator:'above',right:ref('slow')});let mt=+$('momentum-threshold').value/100,vt=+$('vol-threshold').value/100;if(me)entry.push({type:'comparison',left:ref('momentum'),operator:'above',right:constant(mt)});if(mx)exit.push({type:'comparison',left:ref('momentum'),operator:'below',right:constant(mt)});if(ve)entry.push({type:'comparison',left:ref('volatility'),operator:'below',right:constant(vt)});if(vx)exit.push({type:'comparison',left:ref('volatility'),operator:'above',right:constant(vt)});return{schema_version:advanced?'1.1':'1.0',name:`${s} ${f}/${l} filtered trend`,symbols:[s],frequency:'1d',direction:'long_only',indicators,entry_conditions:entry,exit_conditions:exit,entry_logic:advanced?$('entry-logic').value:'all',exit_logic:advanced?$('exit-logic').value:'all',position_sizing:{type:'all_in',cash_buffer_fraction:+$('buffer').value/100,allow_fractional_shares:$('fractional').value==='true'},execution:{signal_price:'close',execution_bar:'next_bar',execution_price:'open'}}}

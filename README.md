@@ -16,9 +16,10 @@ The application now has its first browser-usable vertical slice:
 - executable buy-and-hold benchmark
 - FastAPI HTTP API
 - built-in Yahoo Finance daily-data adapter behind the provider abstraction
-- browser form for instrument, SMA windows, dates, capital, costs, slippage, and sizing\n- built-in Backtest instrument library for SPY, QQQ, IWM, TLT, GLD, EFA, EEM, and HYG, with an Other ticker fallback that preserves arbitrary Yahoo-supported symbols
+- browser form for instrument, SMA windows, dates, capital, costs, slippage, and sizing
+- built-in Backtest instrument library for SPY, QQQ, IWM, TLT, GLD, EFA, EEM, and HYG, with an Other ticker fallback that preserves arbitrary Yahoo-supported symbols
 - Defensive, Neutral, and Offensive backtest example presets that populate strategy, filter, sizing, and execution assumptions while leaving the selected date range unchanged
-- Weak, Good, and Strong historical SPY examples calibrated on 2000-01-03 through 2025-12-31 with 5 bps slippage; these load the fixed calibration dates and are labeled as historical examples rather than forecasts
+- Weak, Typical, and Strong historical examples for every built-in instrument; SPY retains its 2000–2025 calibration, while QQQ/IWM/TLT/GLD/EFA/EEM/HYG use a common 2008–2025 calibration with 5 bps slippage. Labels are relative to each tested grid and do not imply benchmark outperformance
 - browser results for metrics, equity-vs-benchmark chart, and trade history
 - About tab focused on application purpose, workflow, design choices, scope, and limitations
 - clickable metric cards with buy-and-hold comparisons and clearer chart axes/legend
@@ -27,6 +28,7 @@ The application now has its first browser-usable vertical slice:
 - browser Research tab for bounded parameter grids, candidate-cap previews, ranked training results, and separate holdout metrics
 - excess-return ranking objective plus a post-search robustness diagnostic that never affects holdout-independent ranking
 - cross-linked Learn tab with searchable plain-English concept articles and interactive visual explainers
+- Learn article covering the built-in asset classes, what drives them, and why cross-instrument testing matters
 - worked simple-backtest capstone that connects input selection, execution assumptions, benchmark comparison, risk metrics, and next-step research
 
 The system remains intentionally small: the browser UI contains no backtesting logic and there is no authentication or separate JavaScript build toolchain yet.
