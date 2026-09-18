@@ -244,3 +244,18 @@ def test_instrument_selector_preserves_symbol_as_strategy_source_of_truth() -> N
     assert "let s=$('symbol').value.trim().toUpperCase()" in html
     assert "Choose an instrument or enter a ticker" in html
     assert "Custom tickers use the same Yahoo provider and backtest pipeline." in html
+
+
+def test_learn_explains_built_in_instruments_and_links_to_backtest() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    html = client.get("/").text
+
+    assert 'id="wiki-instruments"' in html
+    assert 'data-wiki-target="wiki-instruments"' in html
+    for symbol in ("SPY", "QQQ", "IWM", "TLT", "GLD", "EFA", "EEM", "HYG"):
+        assert f'data-load-instrument="{symbol}"' in html
+    assert "what changes when you leave SPY?" in html
+    assert "Government bonds" in html
+    assert "Gold / real asset" in html
+    assert "Corporate credit" in html
+    assert "document.querySelectorAll('[data-load-instrument]')" in html

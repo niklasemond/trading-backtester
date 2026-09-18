@@ -26,7 +26,7 @@ The application now has its first browser-usable vertical slice:
 - bounded strategy research API with a chronological holdout period and buy-and-hold excess-return reporting
 - browser Research tab for bounded parameter grids, candidate-cap previews, ranked training results, and separate holdout metrics
 - excess-return ranking objective plus a post-search robustness diagnostic that never affects holdout-independent ranking
-- cross-linked Learn tab with searchable plain-English concept articles and interactive visual explainers
+- cross-linked Learn tab with searchable plain-English concept articles and interactive visual explainers\n- Learn article covering the research role of each built-in instrument, with one-click loading into Backtest
 - worked simple-backtest capstone that connects input selection, execution assumptions, benchmark comparison, risk metrics, and next-step research
 
 The system remains intentionally small: the browser UI contains no backtesting logic and there is no authentication or separate JavaScript build toolchain yet.
@@ -62,3 +62,14 @@ The research search ranks candidates only on the training period and reports a l
 ## Tests
 
 The tests use small deterministic datasets so expected fills, cash balances, signals, equity, benchmark values, metrics, and search behavior can be checked directly.
+
+
+## Validate built-in instruments
+
+The repository includes a live Yahoo data-quality smoke check for the built-in instrument library:
+
+```bash
+python scripts/validate_instruments.py
+```
+
+It fetches a fixed completed historical window for SPY, QQQ, IWM, TLT, GLD, EFA, EEM, and HYG and verifies that each canonical dataset is non-empty, strictly ordered, duplicate-free, and valid under the canonical OHLC model. It also reports adjusted-close coverage plus dividend and split event counts. This is an operational provider check, not a replacement for deterministic unit tests.
