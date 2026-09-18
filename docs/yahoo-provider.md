@@ -38,3 +38,31 @@ Useful references:
 - yfinance price repair notes: https://ranaroussi.github.io/yfinance/advanced/price_repair.html
 
 The browser UI remains a thin client. It creates the same versioned `StrategySpec` used by API clients; no signal, execution, accounting, or analytics logic lives in the browser.
+
+
+## Daily-session completion policy
+
+A daily close must represent a completed exchange session before it can become a strategy signal.
+
+For Yahoo daily bars, the adapter converts each bar timestamp into Yahoo's
+`exchangeTimezoneName` and compares the session date with an injected
+timezone-aware retrieval clock.
+
+- bars from an earlier exchange-local date are accepted;
+- future exchange-local session dates are rejected;
+- a bar dated today is accepted only after the regular session end;
+- `meta.currentTradingPeriod.regular.end` is preferred when Yahoo supplies it;
+- for the current US-equity scope, missing same-day session metadata falls back
+  to 16:00 `America/New_York`;
+- if neither the timezone nor a safe same-day completion rule is available, the
+  adapter excludes the same-day bar rather than risking a close-derived signal
+  from an incomplete session.
+
+The comparison never uses the computer's local calendar date. Weekend behavior
+requires no special synthesis: on Saturday or Sunday, Friday is simply a past
+exchange-local session and remains eligible.
+
+The US fallback is deliberately isolated in the Yahoo adapter. It is not a
+general exchange calendar and does not attempt to model every holiday/early
+close. When Yahoo supplies the regular-session end metadata, that timestamp
+takes precedence.

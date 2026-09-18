@@ -6,6 +6,7 @@ import asyncio
 import json
 from collections.abc import Callable
 from datetime import UTC, date, datetime, time, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
@@ -16,6 +17,7 @@ from backtest_app.market_data.provider import MarketDataProvider, MarketDataRequ
 _BASE = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 _UA = "Mozilla/5.0 (compatible; trading-backtester/0.1)"
 Transport = Callable[[str], bytes]
+Clock = Callable[[], datetime]
 
 
 class MarketDataProviderError(RuntimeError):
@@ -51,8 +53,78 @@ def _split(event: dict) -> float | None:
         except (KeyError, TypeError, ValueError, ZeroDivisionError):
             return None
 
+_US_EQUITY_TIMEZONE = "America/New_York"
+_US_REGULAR_CLOSE = time(16, 0)
 
-def _parse(payload: dict, request: MarketDataRequest) -> MarketDataSet:
+
+def _exchange_timezone(meta: dict) -> ZoneInfo | None:
+    name = str(meta.get("exchangeTimezoneName") or "")
+    if not name:
+        return None
+    try:
+        return ZoneInfo(name)
+    except ZoneInfoNotFoundError:
+        return None
+
+
+def _regular_session_end(meta: dict, *, session_date: date, timezone: ZoneInfo) -> datetime | None:
+    """Return Yahoo's stated regular-session end when it matches the bar date."""
+
+    try:
+        raw_end = int(meta["currentTradingPeriod"]["regular"]["end"])
+        end = datetime.fromtimestamp(raw_end, tz=UTC).astimezone(timezone)
+    except (KeyError, TypeError, ValueError, OSError):
+        return None
+    return end if end.date() == session_date else None
+
+
+def _is_completed_daily_session(
+    timestamp: datetime,
+    *,
+    meta: dict,
+    now: datetime,
+) -> bool:
+    """Whether a Yahoo daily bar represents a completed exchange session.
+
+    Past exchange-local session dates are complete. A same-day bar is accepted
+    only after the regular session end. Yahoo's currentTradingPeriod metadata is
+    preferred; for the current US-equity scope, 16:00 America/New_York is the
+    conservative fallback when Yahoo omits that field.
+    """
+
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("Yahoo provider clock must return a timezone-aware datetime")
+
+    timezone = _exchange_timezone(meta)
+    if timezone is None:
+        # Without an exchange timezone we cannot safely interpret a current-day
+        # daily timestamp. Historical UTC dates remain safe to accept.
+        return timestamp.date() < now.astimezone(UTC).date()
+
+    session_date = timestamp.astimezone(timezone).date()
+    current_exchange_date = now.astimezone(timezone).date()
+    if session_date < current_exchange_date:
+        return True
+    if session_date > current_exchange_date:
+        return False
+
+    end = _regular_session_end(meta, session_date=session_date, timezone=timezone)
+    if end is None and str(meta.get("exchangeTimezoneName") or "") == _US_EQUITY_TIMEZONE:
+        end = datetime.combine(session_date, _US_REGULAR_CLOSE, tzinfo=timezone)
+
+    # Unknown same-day session end is treated as incomplete rather than risking
+    # a close-derived signal from a still-forming daily bar.
+    return end is not None and now.astimezone(timezone) >= end
+
+
+def _session_date(timestamp: datetime, meta: dict) -> date:
+    timezone = _exchange_timezone(meta)
+    if timezone is None:
+        return timestamp.date()
+    return timestamp.astimezone(timezone).date()
+
+
+def _parse(payload: dict, request: MarketDataRequest, *, now: datetime) -> MarketDataSet:
     chart = payload.get("chart") or {}
     if chart.get("error"):
         error = chart["error"]
@@ -62,6 +134,7 @@ def _parse(payload: dict, request: MarketDataRequest) -> MarketDataSet:
         raise MarketDataProviderError(f"Yahoo Finance returned no data for {request.symbol}")
 
     result = results[0]
+    meta = result.get("meta") or {}
     quote_rows = (result.get("indicators") or {}).get("quote") or []
     if not quote_rows:
         raise MarketDataProviderError("Yahoo Finance response is missing OHLCV data")
@@ -89,7 +162,10 @@ def _parse(payload: dict, request: MarketDataRequest) -> MarketDataSet:
             values = {field: quote_data[field][index] for field in fields}
         except (KeyError, IndexError, TypeError, ValueError, OSError):
             continue
-        if not request.start_date <= ts.date() <= request.end_date or any(v is None for v in values.values()):
+        session_day = _session_date(ts, meta)
+        if not request.start_date <= session_day <= request.end_date or any(v is None for v in values.values()):
+            continue
+        if not _is_completed_daily_session(ts, meta=meta, now=now):
             continue
         adj = adjusted[index] if index < len(adjusted) else None
         bars.append(
@@ -102,20 +178,19 @@ def _parse(payload: dict, request: MarketDataRequest) -> MarketDataSet:
                 close=float(values["close"]),
                 volume=int(values["volume"]),
                 adjusted_close=float(adj) if adj is not None else None,
-                dividend=dividends.get(ts.date()),
-                split_ratio=splits.get(ts.date()),
+                dividend=dividends.get(session_day),
+                split_ratio=splits.get(session_day),
             )
         )
     if not bars:
         raise MarketDataProviderError(f"Yahoo Finance returned no complete bars for {request.symbol}")
 
-    meta = result.get("meta") or {}
     return MarketDataSet(
         symbol=request.symbol,
         bars=tuple(sorted(bars, key=lambda bar: bar.timestamp)),
         metadata=MarketDataMetadata(
             provider="yahoo",
-            retrieved_at=datetime.now(tz=UTC),
+            retrieved_at=now.astimezone(UTC),
             provider_version="chart-v8",
             dataset_id=f"{request.symbol}:{request.start_date}:{request.end_date}:1d",
             notes={
@@ -134,6 +209,12 @@ def _parse(payload: dict, request: MarketDataRequest) -> MarketDataSet:
                     "bars; held shares receive explicit cash/share adjustments "
                     "before event-date execution."
                 ),
+                "daily_bar_completion_policy": (
+                    "Daily bars dated today in the exchange timezone are excluded "
+                    "until the regular session has ended; Yahoo currentTradingPeriod "
+                    "is preferred, with a 16:00 America/New_York fallback for the "
+                    "current US-equity scope."
+                ),
                 "provider_uncertainty": (
                     "Yahoo chart-v8 data is research-grade and may contain "
                     "corporate-action anomalies; this adapter does not repair them."
@@ -144,8 +225,13 @@ def _parse(payload: dict, request: MarketDataRequest) -> MarketDataSet:
 
 
 class YahooFinanceProvider(MarketDataProvider):
-    def __init__(self, transport: Transport | None = None) -> None:
+    def __init__(
+        self,
+        transport: Transport | None = None,
+        clock: Clock | None = None,
+    ) -> None:
         self._transport = transport or _download
+        self._clock = clock or (lambda: datetime.now(tz=UTC))
 
     @property
     def name(self) -> str:
@@ -167,6 +253,6 @@ class YahooFinanceProvider(MarketDataProvider):
         url = f"{_BASE.format(symbol=quote(request.symbol, safe=''))}?{query}"
         raw = await asyncio.to_thread(self._transport, url)
         try:
-            return _parse(json.loads(raw.decode()), request)
+            return _parse(json.loads(raw.decode()), request, now=self._clock())
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise MarketDataProviderError("Yahoo Finance returned invalid JSON") from exc

@@ -9,6 +9,8 @@ These are the foundation rules for the first milestone. Implementations and test
 - Initial execution model: signal at day **T** close, execute at the next available bar (**T+1**) open.
 - Missing calendar days are not synthesized. "Next bar" means the next observation actually returned in the validated dataset.
 - Requested `start_date` and `end_date` are inclusive boundaries; provider adapters must document any source-specific conversion needed to achieve that contract.
+- A daily bar may be used as a close-derived signal only after its exchange session is complete. Provider adapters must exclude current-session/incomplete daily bars before they reach signal generation.
+- Daily-session completeness is evaluated in the exchange timezone, never from the local computer's calendar date.
 
 ## Market data
 
