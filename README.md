@@ -22,6 +22,7 @@ The application now has its first browser-usable vertical slice:
 - clickable metric cards with buy-and-hold comparisons and clearer chart axes/legend
 - browser strategy builder for optional price-trend, ROC momentum, and volatility filters with configurable entry/exit logic
 - bounded strategy research API with a chronological holdout period and buy-and-hold excess-return reporting
+- browser Research tab for bounded parameter grids, candidate-cap previews, ranked training results, and separate holdout metrics
 
 The system remains intentionally small: the browser UI contains no backtesting logic and there is no authentication or separate JavaScript build toolchain yet.
 

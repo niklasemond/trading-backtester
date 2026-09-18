@@ -44,3 +44,17 @@ def test_browser_exposes_strategy_spec_v11_builder_controls() -> None:
     assert "type:'roc'" in response.text
     assert "type:'volatility'" in response.text
     assert "kind:'constant'" in response.text
+
+
+def test_browser_exposes_research_search_ui() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    response = client.get("/")
+    assert 'data-view="research-view"' in response.text
+    assert 'id="research-form"' in response.text
+    assert 'id="research-validation"' in response.text
+    assert 'id="research-objective"' in response.text
+    assert 'id="research-count"' in response.text
+    assert 'id="research-results"' in response.text
+    assert "/api/v1/research/search" in response.text
+    assert "Holdout excess" in response.text
+    assert "Estimated candidate grid" in response.text
