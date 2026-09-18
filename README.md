@@ -45,7 +45,7 @@ The browser defaults to SPY with a 20/50 SMA crossover and Yahoo Finance as the 
 
 Yahoo is used as a convenient free research source, not as a licensed production market-data feed. The adapter captures OHLCV, adjusted close, and dividend/split events when supplied, but the engine does not yet maintain its own corporate-action ledger. Yahoo's historical OHLC behavior around splits is provider-specific, so real-data results should still be treated as research-grade.
 
-Indicator warm-up currently starts at the selected start date. This means a 50-day SMA needs 50 observations before it can participate in a signal. Pre-start warm-up retrieval is a known next-stage improvement.
+Indicator warm-up is fetched automatically before the selected start date. Warm-up bars are used only for indicator state; portfolio accounting, benchmark construction, and reported performance remain constrained to the selected experiment dates.
 
 ## Tests
 

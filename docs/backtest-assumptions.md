@@ -90,3 +90,13 @@ The foundation does not yet decide or implement survivorship-bias handling, deli
 - The buy-and-hold benchmark is executable: it buys at the first in-range bar's open using the same buy slippage, fixed commission, cash buffer, and integer/fractional sizing assumptions as the strategy. It then holds through the final close and is not force-liquidated, so no benchmark exit cost is charged.
 - Benchmark equity is marked to the same in-range closes as the strategy, allowing chart points to align directly.
 - Corporate-action limitations from earlier iterations still apply to both strategy and benchmark results.
+
+
+## Pre-start indicator warm-up added in Iteration 7
+
+- The application service requests historical observations before the user-selected start date so trailing indicators can be fully initialized when the experiment begins.
+- For the current SMA/crossover schema, the required pre-start observation count is the largest SMA window. This is sufficient to calculate both the previous-bar and first in-range-bar indicator states needed for crossover detection.
+- The provider request uses a conservative calendar lookback and verifies the actual number of returned pre-start observations. If insufficient history is returned, the lookback expands adaptively with a bounded number of retries.
+- A security with genuinely insufficient prior history is still allowed to run; normal indicator warm-up semantics suppress signals until enough observations exist.
+- Pre-start bars may influence indicator values only. They cannot create trades, equity points, benchmark points, or performance observations before the requested `start_date`.
+- No future observations are introduced by warm-up; all first-day signals depend only on bars at or before that signal bar.
