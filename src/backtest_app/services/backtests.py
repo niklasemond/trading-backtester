@@ -9,7 +9,7 @@ from backtest_app.analytics.engine import analyze_backtest
 from backtest_app.domain.analytics import BacktestAnalysis
 from backtest_app.domain.backtest import BacktestResult
 from backtest_app.domain.experiment import ExperimentSpec
-from backtest_app.domain.strategy import SmaIndicator, StrategySpec
+from backtest_app.domain.strategy import RocIndicator, SmaIndicator, StrategySpec, VolatilityIndicator
 from backtest_app.execution.engine import run_backtest
 from backtest_app.market_data.provider import MarketDataProvider, MarketDataRequest
 
@@ -34,7 +34,7 @@ def required_warmup_bars(strategy: StrategySpec) -> int:
     windows = [
         indicator.window
         for indicator in strategy.indicators
-        if isinstance(indicator, SmaIndicator)
+        if isinstance(indicator, (SmaIndicator, RocIndicator, VolatilityIndicator))
     ]
     return max(windows, default=0)
 
