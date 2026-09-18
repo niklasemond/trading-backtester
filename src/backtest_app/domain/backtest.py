@@ -13,6 +13,26 @@ class TradeSide(StrEnum):
     SELL = "sell"
 
 
+class CorporateActionType(StrEnum):
+    DIVIDEND = "dividend"
+    SPLIT = "split"
+
+
+class CorporateActionRecord(BaseModel):
+    """One corporate action actually applied to an open portfolio position."""
+
+    model_config = ConfigDict(frozen=True)
+
+    timestamp: datetime
+    action_type: CorporateActionType
+    quantity_before: float = Field(ge=0.0)
+    quantity_after: float = Field(ge=0.0)
+    cash_flow: float = Field(ge=0.0)
+    cash_after: float
+    dividend_per_share: float | None = Field(default=None, ge=0.0)
+    split_ratio: float | None = Field(default=None, gt=0.0)
+
+
 class TradeRecord(BaseModel):
     """One executed order/fill in the deterministic single-asset simulator."""
 
@@ -54,3 +74,4 @@ class BacktestResult(BaseModel):
     final_position_quantity: float = Field(ge=0.0)
     trades: tuple[TradeRecord, ...]
     equity_curve: tuple[EquityPoint, ...]
+    corporate_actions: tuple[CorporateActionRecord, ...] = ()

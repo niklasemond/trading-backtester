@@ -11,6 +11,7 @@ from backtest_app.domain.backtest import BacktestResult, EquityPoint, TradeSide
 from backtest_app.domain.experiment import BacktestConfig
 from backtest_app.domain.market_data import MarketDataSet
 from backtest_app.domain.strategy import StrategySpec
+from backtest_app.execution.corporate_actions import apply_corporate_actions
 
 _TRADING_DAYS = 252
 _CALENDAR_DAYS = 365.25
@@ -63,12 +64,7 @@ def calculate_metrics(
     *,
     number_of_trades: int = 0,
 ) -> PerformanceMetrics:
-    """Calculate first-milestone daily performance metrics.
-
-    Volatility and Sharpe use arithmetic end-of-bar returns, a 252-day annual
-    factor, sample standard deviation, and a 0% risk-free rate. CAGR uses actual
-    elapsed calendar time between the first and last equity observations.
-    """
+    """Calculate first-milestone daily performance metrics."""
 
     if not equity_curve:
         return PerformanceMetrics(
@@ -115,11 +111,11 @@ def create_buy_and_hold_benchmark(
     backtest: BacktestConfig,
     market_data: MarketDataSet,
 ) -> BenchmarkResult:
-    """Buy at the first in-range open and hold through the final close.
+    """Buy first in-range open, then apply the same corporate-action policy.
 
-    The benchmark uses the strategy's fractional/integer sizing and cash buffer,
-    plus the same buy commission and adverse buy slippage as the strategy run.
-    It is not force-liquidated at the end, so no exit cost is charged.
+    Corporate actions occur before the event-date open. Therefore a benchmark
+    purchase on the first in-range event date does not receive that date's
+    dividend or split adjustment; later events apply to the held position.
     """
 
     in_range_bars = tuple(
@@ -132,49 +128,69 @@ def create_buy_and_hold_benchmark(
             symbol=strategy.symbols[0],
             starting_capital=backtest.starting_capital,
             quantity=0.0,
+            final_quantity=0.0,
             entry_price=None,
             commission=0.0,
             equity_curve=(),
+            corporate_actions=(),
         )
 
     cash = _decimal(backtest.starting_capital)
     commission = _decimal(backtest.costs.commission_amount)
     slippage_fraction = _decimal(backtest.costs.slippage_bps) / _BPS
     cash_buffer = _decimal(strategy.position_sizing.cash_buffer_fraction)
-    first = in_range_bars[0]
-    entry_price = _decimal(first.open) * (Decimal("1") + slippage_fraction)
-
-    deployable = cash * (Decimal("1") - cash_buffer) - commission
     quantity = _ZERO
+    entry_quantity = _ZERO
     charged_commission = _ZERO
-    if deployable > _ZERO:
-        raw_quantity = deployable / entry_price
-        if strategy.position_sizing.allow_fractional_shares:
-            quantity = raw_quantity
-        else:
-            quantity = raw_quantity.to_integral_value(rounding=ROUND_FLOOR)
-        if quantity > _ZERO:
-            cash -= quantity * entry_price + commission
-            charged_commission = commission
+    entry_price: Decimal | None = None
+    curve: list[EquityPoint] = []
+    corporate_actions = []
 
-    curve = tuple(
-        EquityPoint(
-            timestamp=bar.timestamp,
-            cash=float(cash),
-            position_quantity=float(quantity),
-            close_price=bar.close,
-            equity=float(cash + quantity * _decimal(bar.close)),
+    for index, bar in enumerate(in_range_bars):
+        if quantity > _ZERO:
+            action_state = apply_corporate_actions(
+                bar, cash=cash, position=quantity
+            )
+            cash = action_state.cash
+            quantity = action_state.position
+            corporate_actions.extend(action_state.records)
+
+        if index == 0:
+            entry_price = _decimal(bar.open) * (
+                Decimal("1") + slippage_fraction
+            )
+            deployable = cash * (Decimal("1") - cash_buffer) - commission
+            if deployable > _ZERO:
+                raw_quantity = deployable / entry_price
+                if strategy.position_sizing.allow_fractional_shares:
+                    quantity = raw_quantity
+                else:
+                    quantity = raw_quantity.to_integral_value(rounding=ROUND_FLOOR)
+                if quantity > _ZERO:
+                    cash -= quantity * entry_price + commission
+                    entry_quantity = quantity
+                    charged_commission = commission
+
+        close_price = _decimal(bar.close)
+        curve.append(
+            EquityPoint(
+                timestamp=bar.timestamp,
+                cash=float(cash),
+                position_quantity=float(quantity),
+                close_price=float(close_price),
+                equity=float(cash + quantity * close_price),
+            )
         )
-        for bar in in_range_bars
-    )
 
     return BenchmarkResult(
         symbol=strategy.symbols[0],
         starting_capital=backtest.starting_capital,
-        quantity=float(quantity),
-        entry_price=float(entry_price) if quantity > _ZERO else None,
+        quantity=float(entry_quantity),
+        final_quantity=float(quantity),
+        entry_price=float(entry_price) if entry_quantity > _ZERO and entry_price else None,
         commission=float(charged_commission),
-        equity_curve=curve,
+        equity_curve=tuple(curve),
+        corporate_actions=tuple(corporate_actions),
     )
 
 

@@ -121,7 +121,23 @@ def _parse(payload: dict, request: MarketDataRequest) -> MarketDataSet:
             notes={
                 "exchange": str(meta.get("exchangeName") or ""),
                 "timezone": str(meta.get("exchangeTimezoneName") or ""),
-                "price_adjustment": "Yahoo OHLC may reflect split adjustments; adjusted_close is stored separately.",
+                "tradable_price_series": (
+                    "Yahoo quote OHLC is stored as delivered and treated by the "
+                    "engine as raw tradable/mark-to-market prices."
+                ),
+                "adjusted_close_policy": (
+                    "Yahoo adjusted_close is stored separately and is never used "
+                    "for execution or portfolio mark-to-market."
+                ),
+                "corporate_action_policy": (
+                    "Yahoo dividend/split chart events are mapped to event-date "
+                    "bars; held shares receive explicit cash/share adjustments "
+                    "before event-date execution."
+                ),
+                "provider_uncertainty": (
+                    "Yahoo chart-v8 data is research-grade and may contain "
+                    "corporate-action anomalies; this adapter does not repair them."
+                ),
             },
         ),
     )

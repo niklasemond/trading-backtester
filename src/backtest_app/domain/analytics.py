@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .backtest import EquityPoint
+from .backtest import CorporateActionRecord, EquityPoint
 
 
 class PerformanceMetrics(BaseModel):
@@ -33,9 +33,11 @@ class BenchmarkResult(BaseModel):
     symbol: str
     starting_capital: float = Field(gt=0.0)
     quantity: float = Field(ge=0.0)
+    final_quantity: float = Field(default=0.0, ge=0.0)
     entry_price: float | None = Field(default=None, gt=0.0)
     commission: float = Field(ge=0.0)
     equity_curve: tuple[EquityPoint, ...]
+    corporate_actions: tuple[CorporateActionRecord, ...] = ()
 
 
 class BacktestAnalysis(BaseModel):

@@ -51,7 +51,7 @@ The browser defaults to SPY with a 20/50 SMA crossover and Yahoo Finance as the 
 
 ## Important data/correctness caveats
 
-Yahoo is used as a convenient free research source, not as a licensed production market-data feed. The adapter captures OHLCV, adjusted close, and dividend/split events when supplied, but the engine does not yet maintain its own corporate-action ledger. Yahoo's historical OHLC behavior around splits is provider-specific, so real-data results should still be treated as research-grade.
+Yahoo is used as a convenient free research source, not as a licensed production market-data feed. The engine now applies explicit split quantity changes and dividend cash credits from provider events to both strategy and buy-and-hold portfolios, while raw OHLC remains the tradable/mark-to-market series and adjusted close is stored separately. Yahoo data can still contain missing or incorrect corporate-action/price records, so real-data results remain research-grade rather than production-feed quality.
 
 Indicator warm-up is fetched automatically before the selected start date. Warm-up bars are used only for indicator state; portfolio accounting, benchmark construction, and reported performance remain constrained to the selected experiment dates.
 

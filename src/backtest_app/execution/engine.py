@@ -11,9 +11,10 @@ from backtest_app.domain.experiment import BacktestConfig
 from backtest_app.domain.market_data import MarketBar, MarketDataSet
 from backtest_app.domain.signals import SignalSeries
 from backtest_app.domain.strategy import StrategySpec
+from backtest_app.execution.corporate_actions import apply_corporate_actions
 from backtest_app.signals.engine import generate_signals
 
-ENGINE_VERSION = "0.2.0"
+ENGINE_VERSION = "0.3.0"
 _BPS = Decimal("10000")
 _ZERO = Decimal("0")
 
@@ -77,9 +78,10 @@ def simulate_execution(
 ) -> BacktestResult:
     """Execute close-derived signals at the next eligible bar's open.
 
-    Portfolio equity is marked to each in-range bar's close. Signals outside the
-    requested experiment date range are ignored, which allows callers to supply
-    pre-start warm-up data for indicators without creating pre-period positions.
+    Corporate actions apply before event-date executions. Splits adjust shares
+    held entering the session; dividends are credited to those entering shares.
+    Equity is then marked to the raw canonical close. adjusted_close is never
+    used for portfolio accounting.
     """
 
     _validate_inputs(strategy, market_data, signals)
@@ -93,10 +95,19 @@ def simulate_execution(
     pending: _PendingOrder | None = None
     trades: list[TradeRecord] = []
     equity_curve: list[EquityPoint] = []
+    corporate_actions = []
 
     for bar, signal in zip(market_data.bars, signals.points, strict=True):
         bar_date = bar.timestamp.date()
         in_range = backtest.start_date <= bar_date <= backtest.end_date
+
+        if in_range and position > _ZERO:
+            action_state = apply_corporate_actions(
+                bar, cash=cash, position=position
+            )
+            cash = action_state.cash
+            position = action_state.position
+            corporate_actions.extend(action_state.records)
 
         # A signal generated on the prior bar can only execute now. If this bar
         # falls outside the experiment range, the order is deliberately dropped.
@@ -195,6 +206,7 @@ def simulate_execution(
         final_position_quantity=float(position),
         trades=tuple(trades),
         equity_curve=tuple(equity_curve),
+        corporate_actions=tuple(corporate_actions),
     )
 
 

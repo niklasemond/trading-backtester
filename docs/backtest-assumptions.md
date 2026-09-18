@@ -17,7 +17,11 @@ These are the foundation rules for the first milestone. Implementations and test
 - Bars must be strictly increasing with no duplicate timestamps.
 - OHLC fields represent unadjusted tradable prices unless a provider explicitly documents otherwise; `adjusted_close` is a separate field.
 - Dividend and split fields may be `None` when the source cannot provide them. `None` means unavailable, not necessarily zero/no event.
-- The exact corporate-action accounting policy is intentionally **not implemented yet**. Iterations that add the data provider and portfolio engine must choose and test a consistent policy before performance results are treated as meaningful.
+- Corporate actions use explicit event accounting. Raw canonical OHLC is the tradable and mark-to-market series; `adjusted_close` is never used for portfolio accounting.
+- Split events are applied to shares held entering the event-date bar before that bar's execution. Position quantity is multiplied by the split ratio, with no cash flow.
+- Dividend events are treated as ex-date entitlements: cash is credited on the provider event date to shares held entering that session. A position opened at that session's open does not receive that dividend.
+- If a split and dividend share one bar, the split is applied first and the dividend amount is interpreted per post-split share.
+- Corporate actions actually applied to a held position are recorded in the strategy or benchmark corporate-action ledger.
 
 ## Strategy representation
 
@@ -76,7 +80,8 @@ The foundation does not yet decide or implement survivorship-bias handling, deli
 - Portfolio equity is marked at each in-range bar's close as `cash + quantity * close` after any opening execution on that bar.
 - A sufficiently severe price collapse combined with a fixed exit commission can produce negative final cash/equity. This is recorded explicitly rather than rejected or silently clipped.
 - Trade history currently records executed fills (buy/sell) with both the originating signal timestamp and execution timestamp. Round-trip trade analytics are deferred to the analytics layer.
-- Corporate-action accounting remains unresolved. Until a consistent split/dividend methodology is implemented and tested, results from real historical data should not be interpreted as production-grade total-return backtests.
+- Corporate-action accounting is explicit: held positions receive split quantity changes and dividend cash flows before event-date execution, and each applied action is recorded in the result ledger.
+- Equity continues to use raw canonical close prices after those explicit adjustments. `adjusted_close` must not be substituted into portfolio accounting because that would double-count the same actions.
 
 ## Analytics and benchmark semantics added in Iteration 4
 
@@ -89,7 +94,8 @@ The foundation does not yet decide or implement survivorship-bias handling, deli
 - `number_of_trades` for the strategy means completed round trips (buy followed by sell). An open position at the end is not counted as a completed trade.
 - The buy-and-hold benchmark is executable: it buys at the first in-range bar's open using the same buy slippage, fixed commission, cash buffer, and integer/fractional sizing assumptions as the strategy. It then holds through the final close and is not force-liquidated, so no benchmark exit cost is charged.
 - Benchmark equity is marked to the same in-range closes as the strategy, allowing chart points to align directly.
-- Corporate-action limitations from earlier iterations still apply to both strategy and benchmark results.
+- Strategy and buy-and-hold use the same corporate-action application function and event ordering.
+- Provider-data quality remains a limitation: if a source supplies an incorrect/missing dividend, split ratio, or raw price, the engine deliberately does not invent a repair.
 
 
 ## Pre-start indicator warm-up added in Iteration 7
