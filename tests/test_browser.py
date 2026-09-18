@@ -196,9 +196,9 @@ def test_browser_exposes_worked_historical_outcome_examples() -> None:
     html = client.get("/").text
 
     assert '<optgroup label="Worked historical examples">' in html
-    assert '<option value="historical-weak">Weak historical example</option>' in html
-    assert '<option value="historical-good">Good historical example</option>' in html
-    assert '<option value="historical-strong">Strong historical example</option>' in html
+    assert 'value="historical-weak">SPY · Weak historical example</option>' in html
+    assert 'value="historical-good">SPY · Typical historical example</option>' in html
+    assert 'value="historical-strong">SPY · Strong historical example</option>' in html
     assert "Historical calibration · not a forecast" in html
 
 
@@ -207,13 +207,13 @@ def test_historical_examples_load_fixed_calibration_period_and_sma_only_rules() 
     html = client.get("/").text
 
     assert "'historical-weak'" in html
-    assert "fast:5,slow:50" in html
     assert "'historical-good'" in html
-    assert "fast:20,slow:150" in html
     assert "'historical-strong'" in html
-    assert "fast:10,slow:200" in html
-    assert "start:'2000-01-03',end:'2025-12-31'" in html
-    assert "returned about 661% versus 426% for buy-and-hold" in html
+    assert "SPY:{" in html
+    assert "weak:{fast:5,slow:50" in html
+    assert "typical:{fast:20,slow:150" in html
+    assert "strong:{fast:10,slow:200" in html
+    assert "period:['2000-01-03','2025-12-31']" in html
 
 
 def test_backtest_instrument_library_and_custom_ticker_fallback() -> None:
@@ -244,3 +244,29 @@ def test_instrument_selector_preserves_symbol_as_strategy_source_of_truth() -> N
     assert "let s=$('symbol').value.trim().toUpperCase()" in html
     assert "Choose an instrument or enter a ticker" in html
     assert "Custom tickers use the same Yahoo provider and backtest pipeline." in html
+
+
+def test_learn_explains_builtin_asset_classes_and_relative_example_labels() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    html = client.get("/").text
+
+    assert 'id="wiki-instruments"' in html
+    assert 'data-wiki-target="wiki-instruments"' in html
+    for symbol in ("SPY", "QQQ", "IWM", "TLT", "GLD", "EFA", "EEM", "HYG"):
+        assert f"<strong>{symbol} ·" in html
+    assert "Weak, Typical, and Strong are relative labels" in html
+    assert "A Strong example can still underperform" in html
+
+
+def test_every_builtin_instrument_has_three_historical_examples() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    html = client.get("/").text
+
+    assert "const instrumentHistoricalExamples=" in html
+    for symbol in ("SPY", "QQQ", "IWM", "TLT", "GLD", "EFA", "EEM", "HYG"):
+        assert f"{symbol}:{{" in html
+    assert "function historicalExamplePreset(symbol,tier)" in html
+    assert "function updateHistoricalPresetLabels(symbol)" in html
+    assert "relative historical example within the tested grid" in html
+    assert "lagged buy-and-hold" in html
+    assert "beat buy-and-hold" in html
