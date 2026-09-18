@@ -25,6 +25,7 @@ The application now has its first browser-usable vertical slice:
 - browser Research tab for bounded parameter grids, candidate-cap previews, ranked training results, and separate holdout metrics
 - excess-return ranking objective plus a post-search robustness diagnostic that never affects holdout-independent ranking
 - cross-linked Learn tab with searchable plain-English concept articles and interactive visual explainers
+- worked simple-backtest capstone that connects input selection, execution assumptions, benchmark comparison, risk metrics, and next-step research
 
 The system remains intentionally small: the browser UI contains no backtesting logic and there is no authentication or separate JavaScript build toolchain yet.
 
