@@ -18,6 +18,7 @@ The application now has its first browser-usable vertical slice:
 - built-in Yahoo Finance daily-data adapter behind the provider abstraction
 - browser form for symbol, SMA windows, dates, capital, costs, slippage, and sizing
 - Defensive, Neutral, and Offensive backtest example presets that populate strategy, filter, sizing, and execution assumptions while leaving the selected date range unchanged
+- Weak, Good, and Strong historical SPY examples calibrated on 2000-01-03 through 2025-12-31 with 5 bps slippage; these load the fixed calibration dates and are labeled as historical examples rather than forecasts
 - browser results for metrics, equity-vs-benchmark chart, and trade history
 - About tab focused on application purpose, workflow, design choices, scope, and limitations
 - clickable metric cards with buy-and-hold comparisons and clearer chart axes/legend
