@@ -173,7 +173,7 @@ def test_browser_exposes_three_backtest_example_presets() -> None:
     assert '<option value="offensive">Offensive</option>' in html
     assert "const backtestPresets=" in html
     assert "function applyBacktestPreset(name)" in html
-    assert "Dates stay unchanged." in html
+    assert "Strategy-style presets keep your dates." in html
 
 
 def test_backtest_presets_encode_distinct_defensive_neutral_offensive_profiles() -> None:
@@ -189,3 +189,28 @@ def test_backtest_presets_encode_distinct_defensive_neutral_offensive_profiles()
     assert "'momentum-window':63" in html
     assert "buffer:0" in html
     assert "Starting point, not a recommendation" in html
+
+
+def test_browser_exposes_worked_historical_outcome_examples() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    html = client.get("/").text
+
+    assert '<optgroup label="Worked historical examples">' in html
+    assert '<option value="historical-weak">Weak historical example</option>' in html
+    assert '<option value="historical-good">Good historical example</option>' in html
+    assert '<option value="historical-strong">Strong historical example</option>' in html
+    assert "Historical calibration · not a forecast" in html
+
+
+def test_historical_examples_load_fixed_calibration_period_and_sma_only_rules() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    html = client.get("/").text
+
+    assert "'historical-weak'" in html
+    assert "fast:5,slow:50" in html
+    assert "'historical-good'" in html
+    assert "fast:20,slow:150" in html
+    assert "'historical-strong'" in html
+    assert "fast:10,slow:200" in html
+    assert "start:'2000-01-03',end:'2025-12-31'" in html
+    assert "returned about 661% versus 426% for buy-and-hold" in html
