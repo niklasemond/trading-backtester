@@ -21,6 +21,7 @@ The application now has its first browser-usable vertical slice:
 - in-app About & guide tab explaining inputs, assumptions, and result metrics
 - clickable metric cards with buy-and-hold comparisons and clearer chart axes/legend
 - browser strategy builder for optional price-trend, ROC momentum, and volatility filters with configurable entry/exit logic
+- bounded strategy research API with a chronological holdout period and buy-and-hold excess-return reporting
 
 The system remains intentionally small: the browser UI contains no backtesting logic and there is no authentication or separate JavaScript build toolchain yet.
 
@@ -50,6 +51,8 @@ Yahoo is used as a convenient free research source, not as a licensed production
 
 Indicator warm-up is fetched automatically before the selected start date. Warm-up bars are used only for indicator state; portfolio accounting, benchmark construction, and reported performance remain constrained to the selected experiment dates.
 
+The research search ranks candidates only on the training period and reports a later chronological validation period separately. That single holdout reduces one obvious source of in-sample bias but is not a complete defense against overfitting.
+
 ## Tests
 
-The tests use small deterministic datasets so expected fills, cash balances, signals, equity, benchmark values, and metrics can be checked directly.
+The tests use small deterministic datasets so expected fills, cash balances, signals, equity, benchmark values, metrics, and search behavior can be checked directly.
