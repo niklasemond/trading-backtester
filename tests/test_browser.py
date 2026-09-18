@@ -96,3 +96,11 @@ def test_browser_wiki_includes_visual_explainers_and_plain_english_app_context()
     assert "In the app" in response.text
     assert "Trading intuition" in response.text
     assert "1 basis point (bp) = 0.01%" in response.text
+
+
+def test_browser_script_has_no_escaped_template_delimiters() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    response = client.get("/")
+    script = response.text.split("<script>", 1)[1].split("</script>", 1)[0]
+    assert r"\`" not in script
+    assert "function filterWiki()" in script
