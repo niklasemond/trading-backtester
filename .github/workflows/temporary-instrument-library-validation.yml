@@ -1,0 +1,77 @@
+name: temporary-instrument-library-validation
+on:
+  push:
+    branches:
+      - instrument-library-test
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install -e ".[api,dev]" httpx2
+      - run: python -m pytest
+      - name: Check browser JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          html = Path("src/backtest_app/web/index.html").read_text()
+          script = html.split("<script>", 1)[1].split("</script>", 1)[0]
+          Path("/tmp/backtester.js").write_text(script)
+          PY
+          node --check /tmp/backtester.js
+      - name: Live Yahoo smoke backtest for built-in instruments
+        run: |
+          python - <<'PY'
+          import asyncio
+          from datetime import date
+
+          from backtest_app.domain.experiment import BacktestConfig, CostModel, ExperimentSpec
+          from backtest_app.domain.strategy import CrossoverCondition, IndicatorRef, SmaIndicator, StrategySpec
+          from backtest_app.market_data.yahoo import YahooFinanceProvider
+          from backtest_app.services.backtests import execute_experiment
+
+          SYMBOLS=("SPY","QQQ","IWM","TLT","GLD","EFA","EEM","HYG")
+
+          def experiment(symbol):
+              fast=IndicatorRef(id="fast")
+              slow=IndicatorRef(id="slow")
+              strategy=StrategySpec(
+                  name=f"{symbol} smoke",
+                  symbols=(symbol,),
+                  indicators=(SmaIndicator(id="fast",window=20),SmaIndicator(id="slow",window=50)),
+                  entry_conditions=(CrossoverCondition(left=fast,operator="crosses_above",right=slow),),
+                  exit_conditions=(CrossoverCondition(left=fast,operator="crosses_below",right=slow),),
+              )
+              return ExperimentSpec(
+                  strategy=strategy,
+                  backtest=BacktestConfig(
+                      start_date=date(2024,1,1),
+                      end_date=date(2025,12,31),
+                      starting_capital=100000,
+                      costs=CostModel(slippage_bps=5),
+                  ),
+                  requested_data_provider="yahoo",
+              )
+
+          async def main():
+              provider=YahooFinanceProvider()
+              for symbol in SYMBOLS:
+                  completed=await execute_experiment(experiment(symbol),provider)
+                  assert completed.execution.equity_curve, symbol
+                  assert completed.analysis.benchmark.equity_curve, symbol
+                  print(
+                      symbol,
+                      len(completed.execution.equity_curve),
+                      round(completed.analysis.strategy_metrics.total_return,6),
+                      round(completed.analysis.benchmark_metrics.total_return,6),
+                  )
+
+          asyncio.run(main())
+          PY
