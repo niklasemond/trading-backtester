@@ -1,34 +1,38 @@
-"""FastAPI application exposing the backtesting service."""
+"""FastAPI application exposing the backtesting service and browser UI."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.responses import HTMLResponse
 
 from backtest_app.api.models import BacktestResponse, HealthResponse
 from backtest_app.domain.experiment import ExperimentSpec
+from backtest_app.market_data import MarketDataProviderError, YahooFinanceProvider
 from backtest_app.market_data.provider import MarketDataProvider
 from backtest_app.services.backtests import execute_experiment
 
 ProviderResolver = Callable[[str], MarketDataProvider]
+_WEB_INDEX = Path(__file__).parents[1] / "web" / "index.html"
 
 
-def _unconfigured_provider_resolver(name: str) -> MarketDataProvider:
-    raise LookupError(
-        f"market data provider {name!r} is not configured; "
-        "register a provider resolver when creating the application"
-    )
+def default_provider_resolver(name: str) -> MarketDataProvider:
+    """Resolve built-in data providers without leaking provider logic into routes."""
+
+    if name == "yahoo":
+        return YahooFinanceProvider()
+    raise LookupError(f"unknown market data provider: {name!r}")
 
 
 def create_app(provider_resolver: ProviderResolver | None = None) -> FastAPI:
     """Application factory to keep provider selection injectable and testable."""
 
-    resolver = provider_resolver or _unconfigured_provider_resolver
-
+    resolver = provider_resolver or default_provider_resolver
     app = FastAPI(
         title="Trading Backtester API",
-        version="0.1.0",
+        version="0.2.0",
         description="Validated single-asset backtesting API with explicit next-bar execution.",
     )
     app.state.provider_resolver = resolver
@@ -37,10 +41,11 @@ def create_app(provider_resolver: ProviderResolver | None = None) -> FastAPI:
         try:
             return request.app.state.provider_resolver(experiment.requested_data_provider)
         except LookupError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=str(exc),
-            ) from exc
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    async def browser_app() -> HTMLResponse:
+        return HTMLResponse(_WEB_INDEX.read_text(encoding="utf-8"))
 
     @app.get("/health", response_model=HealthResponse, tags=["system"])
     async def health() -> HealthResponse:
@@ -53,11 +58,10 @@ def create_app(provider_resolver: ProviderResolver | None = None) -> FastAPI:
     ) -> BacktestResponse:
         try:
             completed = await execute_experiment(experiment, provider)
+        except MarketDataProviderError as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
         except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=str(exc),
-            ) from exc
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
         return BacktestResponse(
             experiment=completed.experiment,

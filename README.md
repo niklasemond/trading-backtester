@@ -1,35 +1,52 @@
 # Trading Backtester
 
-A modular trading-strategy backtesting application. The first milestone is a browser-based SPY SMA-crossover backtest with correct next-bar execution, benchmark comparison, analytics, and saved experiments.
+A modular browser-based trading-strategy backtester focused on explicit timing, deterministic accounting, and reproducible experiments.
 
-## Current status
+## Current milestone
 
-Iteration 5 is complete. The project now includes the versioned strategy/domain foundation, deterministic SMA/crossover signal generation, a single-asset long-only execution/portfolio engine, performance analytics, and an executable buy-and-hold benchmark. Close-derived signals execute only at the next observed bar's open, with configurable fixed commissions, adverse slippage, all-in sizing, trade records, cash accounting, and end-of-bar equity curves.
+The application now has its first browser-usable vertical slice:
 
-Analytics now include total return, CAGR, annualized volatility, Sharpe ratio, maximum drawdown, completed-trade count, and a benchmark curve using the same entry-cost and sizing assumptions. FastAPI now exposes the complete tested pipeline; the browser frontend and live/free data-provider wiring follow next.
+- versioned, declarative `StrategySpec`
+- daily single-asset SMA crossover signals
+- close-derived signals with next-observed-bar open execution
+- long-only portfolio/cash accounting
+- fixed commissions and adverse slippage
+- equity curve and trade history
+- total return, CAGR, volatility, Sharpe ratio, and maximum drawdown
+- executable buy-and-hold benchmark
+- FastAPI HTTP API
+- built-in Yahoo Finance daily-data adapter behind the provider abstraction
+- browser form for symbol, SMA windows, dates, capital, costs, slippage, and sizing
+- browser results for metrics, equity-vs-benchmark chart, and trade history
 
-## Development
+The system remains intentionally small: the browser UI contains no backtesting logic and there is no authentication or separate JavaScript build toolchain yet.
+
+## Run locally
+
+From a fresh checkout:
 
 ```bash
-cd /mnt/data/trading-backtester
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+python -m pip install -e ".[api,dev]"
 python -m pytest
-```
-
-The source package uses a `src/` layout. Tests use small deterministic datasets so timing, fills, cash, positions, and equity can be checked exactly.
-
-## FastAPI (Iteration 5)
-
-The HTTP layer is now available and deliberately contains no backtesting logic. It validates an `ExperimentSpec`, resolves a market-data provider, runs the existing application service, and serializes the execution + analytics result.
-
-Start the API locally with:
-
-```bash
 uvicorn backtest_app.api.app:app --app-dir src --reload
 ```
 
 Then open:
 
-- `http://127.0.0.1:8000/docs` for the interactive OpenAPI/Swagger UI
-- `http://127.0.0.1:8000/health` for the health check
+- `http://127.0.0.1:8000/` — browser backtester
+- `http://127.0.0.1:8000/docs` — interactive API documentation
+- `http://127.0.0.1:8000/health` — health check
 
-The default app intentionally has no live/free market-data provider registered yet, so `/api/v1/backtests` will return a clear 422 until a provider is configured. Tests inject a deterministic provider and exercise the complete API pipeline. The next provider/frontend iteration will wire a user-facing data source into the same boundary without changing the backtesting engine.
+The browser defaults to SPY with a 20/50 SMA crossover and Yahoo Finance as the free historical-data provider.
+
+## Important data/correctness caveats
+
+Yahoo is used as a convenient free research source, not as a licensed production market-data feed. The adapter captures OHLCV, adjusted close, and dividend/split events when supplied, but the engine does not yet maintain its own corporate-action ledger. Yahoo's historical OHLC behavior around splits is provider-specific, so real-data results should still be treated as research-grade.
+
+Indicator warm-up currently starts at the selected start date. This means a 50-day SMA needs 50 observations before it can participate in a signal. Pre-start warm-up retrieval is a known next-stage improvement.
+
+## Tests
+
+The tests use small deterministic datasets so expected fills, cash balances, signals, equity, benchmark values, and metrics can be checked directly.
