@@ -12,8 +12,8 @@ def test_browser_root_serves_backtest_form_and_guide() -> None:
     assert response.status_code == 200
     assert "Trading Backtester" in response.text
     assert 'id="backtest-form"' in response.text
-    assert "About &amp; guide" in response.text
-    assert 'id="guide-view"' in response.text
+    assert ">About</button>" in response.text
+    assert 'id="about-view"' in response.text
     assert "/api/v1/backtests" in response.text
 
 
@@ -90,9 +90,9 @@ def test_browser_exposes_cross_linked_trading_wiki() -> None:
 def test_browser_wiki_includes_visual_explainers_and_plain_english_app_context() -> None:
     client = TestClient(create_app(lambda _: ApiTestProvider()))
     response = client.get("/")
-    assert 'aria-label="Price line with faster and slower moving averages"' in response.text
-    assert 'aria-label="Timeline divided into training and holdout periods"' in response.text
-    assert 'aria-label="Equity curve showing peak, trough, and maximum drawdown"' in response.text
+    assert 'aria-label="Interactive price line and moving average"' in response.text
+    assert 'aria-label="Interactive timeline divided into training and holdout periods"' in response.text
+    assert 'aria-label="Interactive maximum drawdown illustration"' in response.text
     assert "In the app" in response.text
     assert "Trading intuition" in response.text
     assert "1 basis point (bp) = 0.01%" in response.text
@@ -104,3 +104,43 @@ def test_browser_script_has_no_escaped_template_delimiters() -> None:
     script = response.text.split("<script>", 1)[1].split("</script>", 1)[0]
     assert r"\`" not in script
     assert "function filterWiki()" in script
+
+
+def test_top_navigation_order_and_about_default_view() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    response = client.get("/")
+    html = response.text
+    about = html.index('data-view="about-view"')
+    learn = html.index('data-view="learn-view"')
+    backtest = html.index('data-view="backtest-view"')
+    research = html.index('data-view="research-view"')
+    assert about < learn < backtest < research
+    assert 'class="tab active" data-view="about-view"' in html
+    assert '<section id="about-view" class="view">' in html
+    assert '<section id="backtest-view" class="view" hidden>' in html
+
+
+def test_learn_visuals_include_interactive_controls() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    response = client.get("/")
+    html = response.text
+    assert 'id="learn-sma-window"' in html
+    assert 'id="learn-slippage-bps"' in html
+    assert 'id="learn-drawdown"' in html
+    assert 'id="learn-holdout-split"' in html
+    assert "function updateSmaDemo()" in html
+    assert "function updateSlippageDemo()" in html
+    assert "function updateDrawdownDemo()" in html
+    assert "function updateHoldoutDemo()" in html
+
+
+def test_about_is_product_focused_not_duplicate_glossary() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    response = client.get("/")
+    html = response.text
+    about = html.split('<section id="about-view"', 1)[1].split('</section>\n</main>', 1)[0]
+    assert "What this app is for" in about
+    assert "Core design choices" in about
+    assert "Data and current limitations" in about
+    assert "Definitions live in Learn" in about
+    assert "How to read the results" not in about
