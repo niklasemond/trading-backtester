@@ -20,6 +20,7 @@ The application now has its first browser-usable vertical slice:
 - browser results for metrics, equity-vs-benchmark chart, and trade history
 - in-app About & guide tab explaining inputs, assumptions, and result metrics
 - clickable metric cards with buy-and-hold comparisons and clearer chart axes/legend
+- browser strategy builder for optional price-trend, ROC momentum, and volatility filters with configurable entry/exit logic
 
 The system remains intentionally small: the browser UI contains no backtesting logic and there is no authentication or separate JavaScript build toolchain yet.
 
