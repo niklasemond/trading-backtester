@@ -1,0 +1,53 @@
+name: temporary-calibration-by-excess
+on:
+  push:
+    branches:
+      - multi-instrument-calibration-excess
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[api,dev]" httpx2
+      - run: |
+          python - <<'PY'
+          import asyncio, json
+          from datetime import date, timedelta
+          from itertools import product
+          from backtest_app.analytics.engine import analyze_backtest
+          from backtest_app.domain.experiment import BacktestConfig, CostModel
+          from backtest_app.domain.strategy import ComparisonCondition, CrossoverCondition, IndicatorRef, PriceRef, SmaIndicator, StrategySpec
+          from backtest_app.execution.engine import run_backtest
+          from backtest_app.market_data.provider import MarketDataRequest
+          from backtest_app.market_data.yahoo import YahooFinanceProvider
+
+          SYMBOLS=("QQQ","IWM","TLT","GLD","EFA","EEM","HYG")
+          START=date(2008,1,2); END=date(2025,12,31)
+          FAST=(5,10,20,30,50,75,100); SLOW=(50,75,100,150,200,250,300)
+          cfg=lambda: BacktestConfig(start_date=START,end_date=END,starting_capital=100000,costs=CostModel(slippage_bps=5))
+
+          def spec(symbol,f,sl,tr):
+              fast=IndicatorRef(id="fast"); slow=IndicatorRef(id="slow")
+              entry=[CrossoverCondition(left=fast,operator="crosses_above",right=slow)]
+              if tr: entry.append(ComparisonCondition(left=PriceRef(),operator="above",right=slow))
+              return StrategySpec(schema_version="1.1",name="calibration",symbols=(symbol,),indicators=(SmaIndicator(id="fast",window=f),SmaIndicator(id="slow",window=sl)),entry_conditions=tuple(entry),exit_conditions=(CrossoverCondition(left=fast,operator="crosses_below",right=slow),),entry_logic="all",exit_logic="all")
+
+          async def main():
+              p=YahooFinanceProvider()
+              for symbol in SYMBOLS:
+                  data=await p.get_history(MarketDataRequest(symbol=symbol,start_date=START-timedelta(days=700),end_date=END))
+                  rows=[]; bench=None
+                  for f,sl,tr in product(FAST,SLOW,(False,True)):
+                      if f>=sl: continue
+                      s=spec(symbol,f,sl,tr)
+                      a=analyze_backtest(run_backtest(s,cfg(),data),s,cfg(),data)
+                      m=a.strategy_metrics; b=a.benchmark_metrics; bench=b
+                      rows.append({"fast":f,"slow":sl,"trend":tr,"return":m.total_return,"excess":m.total_return-b.total_return,"sharpe":m.sharpe_ratio,"drawdown":m.max_drawdown,"trades":m.number_of_trades})
+                  rows.sort(key=lambda r:r["excess"])
+                  payload={"symbol":symbol,"benchmark":bench.model_dump(),"weak":rows[0],"good":min(rows,key=lambda r:abs(r["excess"])),"strong":rows[-1],"candidate_count":len(rows)}
+                  print("CALIBRATION",json.dumps(payload,sort_keys=True))
+          asyncio.run(main())
+          PY
