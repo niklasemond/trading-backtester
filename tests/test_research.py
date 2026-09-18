@@ -89,3 +89,37 @@ async def test_search_rejects_grid_above_explicit_candidate_cap() -> None:
         await search_strategies(too_large, provider)
 
     assert provider.requests == []
+
+
+@pytest.mark.asyncio
+async def test_excess_return_objective_ranks_on_training_excess_only() -> None:
+    provider = ResearchProvider()
+    configured = request().model_copy(update={"objective": "excess_total_return"})
+    result = await search_strategies(configured, provider)
+
+    assert result.objective == "excess_total_return"
+    excess = [candidate.training.excess_total_return for candidate in result.candidates]
+    assert excess == sorted(excess, reverse=True)
+
+
+@pytest.mark.asyncio
+async def test_robustness_is_post_search_worst_period_excess_diagnostic() -> None:
+    provider = ResearchProvider()
+    result = await search_strategies(request(), provider)
+
+    for candidate in result.candidates:
+        expected = min(
+            candidate.training.excess_total_return,
+            candidate.validation.excess_total_return,
+        )
+        assert candidate.robustness_score == pytest.approx(expected)
+        train = candidate.training.excess_total_return
+        holdout = candidate.validation.excess_total_return
+        if train > 0 and holdout > 0:
+            assert candidate.robustness_label == "positive_both"
+        elif train < 0 and holdout < 0:
+            assert candidate.robustness_label == "negative_both"
+        elif train == 0 and holdout == 0:
+            assert candidate.robustness_label == "neutral"
+        else:
+            assert candidate.robustness_label == "mixed"

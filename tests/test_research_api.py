@@ -13,7 +13,7 @@ def test_research_search_endpoint_returns_training_and_validation_results() -> N
         "end_date": "2024-02-20",
         "starting_capital": 100000,
         "requested_data_provider": "research-test",
-        "objective": "total_return",
+        "objective": "excess_total_return",
         "top_n": 2,
         "max_candidates": 100,
         "search_space": {
@@ -39,3 +39,5 @@ def test_research_search_endpoint_returns_training_and_validation_results() -> N
     assert "training" in body["candidates"][0]
     assert "validation" in body["candidates"][0]
     assert "excess_total_return" in body["candidates"][0]["validation"]
+    assert "robustness_score" in body["candidates"][0]
+    assert "robustness_label" in body["candidates"][0]

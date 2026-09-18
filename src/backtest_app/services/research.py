@@ -135,6 +135,8 @@ def _score(candidate: StrategySearchCandidate, objective: str) -> float:
     metrics = candidate.training.strategy_metrics
     if objective == "total_return":
         return metrics.total_return
+    if objective == "excess_total_return":
+        return candidate.training.excess_total_return
     if objective == "sharpe_ratio":
         return (
             metrics.sharpe_ratio
@@ -144,6 +146,28 @@ def _score(candidate: StrategySearchCandidate, objective: str) -> float:
     if objective == "max_drawdown":
         return -metrics.max_drawdown
     raise ValueError(f"unsupported objective: {objective}")
+
+
+def _robustness(training: SearchPeriodResult, validation: SearchPeriodResult) -> tuple[float, str]:
+    """Return a conservative post-search diagnostic using both periods.
+
+    The score is the weaker of training and validation excess total return. It is
+    deliberately NOT used for candidate ranking, because doing so would optimize
+    against the holdout and destroy its role as independent validation evidence.
+    """
+
+    train = training.excess_total_return
+    holdout = validation.excess_total_return
+    score = min(train, holdout)
+    if train > 0 and holdout > 0:
+        label = "positive_both"
+    elif train < 0 and holdout < 0:
+        label = "negative_both"
+    elif train == 0 and holdout == 0:
+        label = "neutral"
+    else:
+        label = "mixed"
+    return score, label
 
 
 async def search_strategies(
@@ -208,12 +232,15 @@ async def search_strategies(
         except ValueError:
             skipped += 1
             continue
+        robustness_score, robustness_label = _robustness(training, validation)
         evaluated.append(
             StrategySearchCandidate(
                 rank=0,
                 parameters=parameter_set,
                 training=training,
                 validation=validation,
+                robustness_score=robustness_score,
+                robustness_label=robustness_label,
             )
         )
 

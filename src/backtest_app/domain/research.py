@@ -50,7 +50,7 @@ class StrategySearchRequest(BaseModel):
     costs: CostModel = Field(default_factory=CostModel)
     requested_data_provider: str = Field(default="yahoo", min_length=1)
     search_space: StrategySearchSpace = Field(default_factory=StrategySearchSpace)
-    objective: Literal["total_return", "sharpe_ratio", "max_drawdown"] = "total_return"
+    objective: Literal["total_return", "excess_total_return", "sharpe_ratio", "max_drawdown"] = "excess_total_return"
     top_n: int = Field(default=10, ge=1, le=50)
     max_candidates: int = Field(default=2_000, ge=1, le=10_000)
 
@@ -92,6 +92,8 @@ class StrategySearchCandidate(BaseModel):
     parameters: SearchParameters
     training: SearchPeriodResult
     validation: SearchPeriodResult
+    robustness_score: float
+    robustness_label: Literal["positive_both", "mixed", "negative_both", "neutral"]
 
 
 class StrategySearchResponse(BaseModel):

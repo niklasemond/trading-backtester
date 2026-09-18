@@ -58,3 +58,13 @@ def test_browser_exposes_research_search_ui() -> None:
     assert "/api/v1/research/search" in response.text
     assert "Holdout excess" in response.text
     assert "Estimated candidate grid" in response.text
+
+
+def test_browser_exposes_excess_return_objective_and_robustness_view() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    response = client.get("/")
+    assert 'value="excess_total_return"' in response.text
+    assert "Excess return vs buy & hold" in response.text
+    assert "Robustness" in response.text
+    assert "Robustness is a post-search diagnostic" in response.text
+    assert "worst excess" in response.text

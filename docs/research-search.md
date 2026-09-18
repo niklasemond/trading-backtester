@@ -22,3 +22,12 @@ The current holdout is a single chronological split, not a complete defense agai
 ## Benchmark comparison
 
 Each training and validation period includes the app's executable buy-and-hold benchmark under the same starting capital, fixed commission, slippage, cash-buffer, and share-sizing assumptions. `excess_total_return` is strategy total return minus benchmark total return for that period.
+
+
+## Excess-return objective and robustness diagnostic
+
+The search can rank candidates by training-period `excess_total_return`, defined as strategy total return minus the executable buy-and-hold benchmark return for the same period. Because every candidate in one search shares the same benchmark, this has the same ordering as raw training total return, but it expresses the research target directly.
+
+Robustness is deliberately *not* a ranking objective. After ranking is complete, each returned candidate receives a diagnostic `robustness_score` equal to the weaker of its training and validation excess returns. A positive score therefore requires the strategy to beat buy-and-hold in both periods. The accompanying label is `positive_both`, `mixed`, `negative_both`, or `neutral`.
+
+Using validation performance to re-rank candidates would turn the holdout into another optimization set. The UI therefore displays robustness after the search but never feeds it back into candidate selection.
