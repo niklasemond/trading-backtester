@@ -1,0 +1,52 @@
+name: temporary-instrument-education-validation
+on:
+  push:
+    branches:
+      - instrument-education-test
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install -e ".[api,dev]" httpx2
+      - run: python -m pytest
+      - name: Check browser JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          html=Path("src/backtest_app/web/index.html").read_text()
+          script=html.split("<script>",1)[1].split("</script>",1)[0]
+          Path("/tmp/backtester.js").write_text(script)
+          PY
+          node --check /tmp/backtester.js
+      - name: Validate built-in instruments against Yahoo
+        run: |
+          python - <<'PY'
+          import asyncio
+          from datetime import date
+          from backtest_app.market_data.instruments import BUILT_IN_INSTRUMENTS
+          from backtest_app.market_data.quality import validate_instrument_history
+          from backtest_app.market_data.yahoo import YahooFinanceProvider
+
+          async def main():
+              provider=YahooFinanceProvider()
+              for instrument in BUILT_IN_INSTRUMENTS:
+                  report=await validate_instrument_history(
+                      provider,
+                      instrument,
+                      start_date=date(2024,1,1),
+                      end_date=date(2025,12,31),
+                  )
+                  assert report.bars > 400
+                  assert report.adjusted_close_coverage > .95
+                  assert report.daily_bar_completion_policy_present
+                  print(report.model_dump_json())
+          asyncio.run(main())
+          PY
