@@ -160,3 +160,32 @@ def test_learn_includes_putting_it_all_together_capstone() -> None:
     assert 'data-wiki-target="wiki-buy-hold"' in html
     assert 'data-wiki-target="wiki-drawdown"' in html
     assert 'data-wiki-target="wiki-train-holdout"' in html
+
+
+def test_browser_exposes_three_backtest_example_presets() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    response = client.get("/")
+    html = response.text
+
+    assert 'id="backtest-preset"' in html
+    assert '<option value="defensive">Defensive</option>' in html
+    assert '<option value="neutral">Neutral</option>' in html
+    assert '<option value="offensive">Offensive</option>' in html
+    assert "const backtestPresets=" in html
+    assert "function applyBacktestPreset(name)" in html
+    assert "Dates stay unchanged." in html
+
+
+def test_backtest_presets_encode_distinct_defensive_neutral_offensive_profiles() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    html = client.get("/").text
+
+    assert "fast:50,slow:200" in html
+    assert "'vol-threshold':25" in html
+    assert "buffer:10" in html
+    assert "fast:20,slow:100" in html
+    assert "buffer:5" in html
+    assert "fast:10,slow:50" in html
+    assert "'momentum-window':63" in html
+    assert "buffer:0" in html
+    assert "Starting point, not a recommendation" in html
