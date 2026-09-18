@@ -369,7 +369,8 @@ const instrumentHistoricalExamples={
   }
 };
 function historicalExamplePreset(symbol,tier){
-  let instrument=instrumentHistoricalExamples[symbol]||instrumentHistoricalExamples.SPY;
+  let instrument=instrumentHistoricalExamples[symbol];
+  if(!instrument)throw Error('Historical examples are available only for built-in instruments');
   let e=instrument[tier],label=tier==='typical'?'Typical':tier[0].toUpperCase()+tier.slice(1);
   let relation=e.excess>=0?`beat buy-and-hold by about ${e.excess} percentage points`:`lagged buy-and-hold by about ${Math.abs(e.excess)} percentage points`;
   return{
@@ -379,10 +380,13 @@ function historicalExamplePreset(symbol,tier){
   }
 }
 function updateHistoricalPresetLabels(symbol){
-  let s=instrumentHistoricalExamples[symbol]?symbol:'SPY';
+  let available=Boolean(instrumentHistoricalExamples[symbol]),s=available?symbol:'Built-ins only';
+  let options=[$('historical-weak-option'),$('historical-good-option'),$('historical-strong-option')];
+  options.forEach(option=>option.disabled=!available);
   $('historical-weak-option').textContent=`${s} · Weak historical example`;
   $('historical-good-option').textContent=`${s} · Typical historical example`;
   $('historical-strong-option').textContent=`${s} · Strong historical example`;
+  if(!available&&$('backtest-preset').value.startsWith('historical-'))$('backtest-preset').value='';
 }
 setInstrumentSymbol('SPY');
 
