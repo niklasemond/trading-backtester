@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import UTC, date, datetime
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -102,3 +102,163 @@ async def test_yahoo_provider_skips_incomplete_rows() -> None:
     )
 
     assert len(result.bars) == 1
+
+
+def daily_payload(
+    *,
+    session_open_utc: datetime,
+    regular_end_utc: datetime | None,
+) -> bytes:
+    meta = {
+        "currency": "USD",
+        "exchangeName": "NMS",
+        "exchangeTimezoneName": "America/New_York",
+    }
+    if regular_end_utc is not None:
+        meta["currentTradingPeriod"] = {
+            "regular": {
+                "start": int(session_open_utc.timestamp()),
+                "end": int(regular_end_utc.timestamp()),
+                "timezone": "EDT",
+                "gmtoffset": -14400,
+            }
+        }
+    return json.dumps(
+        {
+            "chart": {
+                "result": [
+                    {
+                        "meta": meta,
+                        "timestamp": [int(session_open_utc.timestamp())],
+                        "indicators": {
+                            "quote": [
+                                {
+                                    "open": [100.0],
+                                    "high": [102.0],
+                                    "low": [99.0],
+                                    "close": [101.0],
+                                    "volume": [1000],
+                                }
+                            ],
+                            "adjclose": [{"adjclose": [101.0]}],
+                        },
+                        "events": {},
+                    }
+                ],
+                "error": None,
+            }
+        }
+    ).encode()
+
+
+@pytest.mark.asyncio
+async def test_yahoo_accepts_completed_historical_session() -> None:
+    session_open = datetime(2026, 9, 17, 13, 30, tzinfo=UTC)
+    provider = YahooFinanceProvider(
+        transport=lambda _: daily_payload(
+            session_open_utc=session_open,
+            regular_end_utc=None,
+        ),
+        clock=lambda: datetime(2026, 9, 18, 15, 0, tzinfo=UTC),
+    )
+
+    result = await provider.get_history(
+        MarketDataRequest(
+            symbol="SPY",
+            start_date=date(2026, 9, 17),
+            end_date=date(2026, 9, 17),
+        )
+    )
+
+    assert len(result.bars) == 1
+
+
+@pytest.mark.asyncio
+async def test_yahoo_excludes_current_incomplete_daily_session() -> None:
+    session_open = datetime(2026, 9, 18, 13, 30, tzinfo=UTC)
+    session_end = datetime(2026, 9, 18, 20, 0, tzinfo=UTC)
+    provider = YahooFinanceProvider(
+        transport=lambda _: daily_payload(
+            session_open_utc=session_open,
+            regular_end_utc=session_end,
+        ),
+        clock=lambda: datetime(2026, 9, 18, 17, 0, tzinfo=UTC),
+    )
+
+    with pytest.raises(MarketDataProviderError, match="no complete bars"):
+        await provider.get_history(
+            MarketDataRequest(
+                symbol="SPY",
+                start_date=date(2026, 9, 18),
+                end_date=date(2026, 9, 18),
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_yahoo_accepts_current_daily_bar_after_regular_session_close() -> None:
+    session_open = datetime(2026, 9, 18, 13, 30, tzinfo=UTC)
+    session_end = datetime(2026, 9, 18, 20, 0, tzinfo=UTC)
+    provider = YahooFinanceProvider(
+        transport=lambda _: daily_payload(
+            session_open_utc=session_open,
+            regular_end_utc=session_end,
+        ),
+        clock=lambda: datetime(2026, 9, 18, 20, 1, tzinfo=UTC),
+    )
+
+    result = await provider.get_history(
+        MarketDataRequest(
+            symbol="SPY",
+            start_date=date(2026, 9, 18),
+            end_date=date(2026, 9, 18),
+        )
+    )
+
+    assert len(result.bars) == 1
+    assert result.metadata.retrieved_at == datetime(2026, 9, 18, 20, 1, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_yahoo_weekend_keeps_latest_completed_friday_bar() -> None:
+    friday_open = datetime(2026, 9, 18, 13, 30, tzinfo=UTC)
+    provider = YahooFinanceProvider(
+        transport=lambda _: daily_payload(
+            session_open_utc=friday_open,
+            regular_end_utc=None,
+        ),
+        clock=lambda: datetime(2026, 9, 19, 14, 0, tzinfo=UTC),
+    )
+
+    result = await provider.get_history(
+        MarketDataRequest(
+            symbol="SPY",
+            start_date=date(2026, 9, 18),
+            end_date=date(2026, 9, 19),
+        )
+    )
+
+    assert len(result.bars) == 1
+
+
+@pytest.mark.asyncio
+async def test_yahoo_uses_us_close_fallback_when_current_trading_period_missing() -> None:
+    session_open = datetime(2026, 9, 18, 13, 30, tzinfo=UTC)
+    provider = YahooFinanceProvider(
+        transport=lambda _: daily_payload(
+            session_open_utc=session_open,
+            regular_end_utc=None,
+        ),
+        clock=lambda: datetime(2026, 9, 18, 20, 1, tzinfo=UTC),
+    )
+
+    result = await provider.get_history(
+        MarketDataRequest(
+            symbol="SPY",
+            start_date=date(2026, 9, 18),
+            end_date=date(2026, 9, 18),
+        )
+    )
+
+    assert len(result.bars) == 1
+    assert "Daily bars dated today" in result.metadata.notes["daily_bar_completion_policy"]
