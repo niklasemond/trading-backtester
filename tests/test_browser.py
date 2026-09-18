@@ -173,7 +173,7 @@ def test_browser_exposes_three_backtest_example_presets() -> None:
     assert '<option value="offensive">Offensive</option>' in html
     assert "const backtestPresets=" in html
     assert "function applyBacktestPreset(name)" in html
-    assert "Dates stay unchanged." in html
+    assert "Strategy-style presets keep your dates." in html
 
 
 def test_backtest_presets_encode_distinct_defensive_neutral_offensive_profiles() -> None:
