@@ -214,3 +214,33 @@ def test_historical_examples_load_fixed_calibration_period_and_sma_only_rules() 
     assert "fast:10,slow:200" in html
     assert "start:'2000-01-03',end:'2025-12-31'" in html
     assert "returned about 661% versus 426% for buy-and-hold" in html
+
+
+def test_backtest_instrument_library_and_custom_ticker_fallback() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    html = client.get("/").text
+
+    assert 'id="instrument"' in html
+    assert '<option value="SPY">SPY — S&P 500</option>' in html
+    assert '<option value="QQQ">QQQ — Nasdaq-100</option>' in html
+    assert '<option value="IWM">IWM — Russell 2000</option>' in html
+    assert '<option value="TLT">TLT — Long US Treasuries</option>' in html
+    assert '<option value="GLD">GLD — Gold</option>' in html
+    assert '<option value="EFA">EFA — Developed ex-US equities</option>' in html
+    assert '<option value="EEM">EEM — Emerging markets</option>' in html
+    assert '<option value="HYG">HYG — High-yield credit</option>' in html
+    assert '<option value="other">Other ticker…</option>' in html
+    assert 'id="custom-symbol-label"' in html
+    assert "const instrumentLibrary=" in html
+    assert "function setInstrumentSymbol(symbol)" in html
+    assert "function applyInstrumentSelection()" in html
+
+
+def test_instrument_selector_preserves_symbol_as_strategy_source_of_truth() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    html = client.get("/").text
+
+    assert "if(id==='symbol'){setInstrumentSymbol(value);return}" in html
+    assert "let s=$('symbol').value.trim().toUpperCase()" in html
+    assert "Choose an instrument or enter a ticker" in html
+    assert "Custom tickers use the same Yahoo provider and backtest pipeline." in html

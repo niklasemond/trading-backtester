@@ -16,7 +16,7 @@ The application now has its first browser-usable vertical slice:
 - executable buy-and-hold benchmark
 - FastAPI HTTP API
 - built-in Yahoo Finance daily-data adapter behind the provider abstraction
-- browser form for symbol, SMA windows, dates, capital, costs, slippage, and sizing
+- browser form for instrument, SMA windows, dates, capital, costs, slippage, and sizing\n- built-in Backtest instrument library for SPY, QQQ, IWM, TLT, GLD, EFA, EEM, and HYG, with an Other ticker fallback that preserves arbitrary Yahoo-supported symbols
 - Defensive, Neutral, and Offensive backtest example presets that populate strategy, filter, sizing, and execution assumptions while leaving the selected date range unchanged
 - Weak, Good, and Strong historical SPY examples calibrated on 2000-01-03 through 2025-12-31 with 5 bps slippage; these load the fixed calibration dates and are labeled as historical examples rather than forecasts
 - browser results for metrics, equity-vs-benchmark chart, and trade history
@@ -49,7 +49,7 @@ Then open:
 - `http://127.0.0.1:8000/docs` — interactive API documentation
 - `http://127.0.0.1:8000/health` — health check
 
-The browser defaults to SPY with a 20/50 SMA crossover and Yahoo Finance as the free historical-data provider.
+The browser defaults to SPY with a 20/50 SMA crossover and Yahoo Finance as the free historical-data provider. The Backtest instrument selector also includes QQQ, IWM, TLT, GLD, EFA, EEM, and HYG while preserving an Other ticker option.
 
 ## Important data/correctness caveats
 
