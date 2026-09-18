@@ -144,3 +144,19 @@ def test_about_is_product_focused_not_duplicate_glossary() -> None:
     assert "Data and current limitations" in about
     assert "Definitions live in Learn" in about
     assert "How to read the results" not in about
+
+
+def test_learn_includes_putting_it_all_together_capstone() -> None:
+    client = TestClient(create_app(lambda _: ApiTestProvider()))
+    response = client.get("/")
+    html = response.text
+    assert 'id="wiki-putting-it-together"' in html
+    assert 'data-wiki-target="wiki-putting-it-together"' in html
+    assert "Putting it all together: a simple backtest" in html
+    assert "Choose a simple first version" in html
+    assert "Run the backtest and read the result in layers" in html
+    assert "A worked interpretation" in html
+    assert "Decide what to test next" in html
+    assert 'data-wiki-target="wiki-buy-hold"' in html
+    assert 'data-wiki-target="wiki-drawdown"' in html
+    assert 'data-wiki-target="wiki-train-holdout"' in html
